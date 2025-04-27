@@ -4,11 +4,11 @@ const { defineConfig } = require("drizzle-kit");
 dotenv.config({ path: ".env" }); // Load environment variables from .env
 
 module.exports = defineConfig({
-  schema: "./db/schema.js", // Path to your schema file
-  out: "./drizzle", // Directory to output migrations
-  dialect: "postgresql", // Specify the database dialect
+  schema: "./db/schema.js",
+  out: "./drizzle",
+  dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL, // Get the connection URL from environment variables (removed !)
+    url: process.env.DATABASE_URL,
   },
   verbose: true,
   strict: true,
