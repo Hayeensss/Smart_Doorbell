@@ -10,6 +10,6 @@ module.exports = defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL, // Get the connection URL from environment variables (removed !)
   },
-  verbose: true, // Optional: Enable verbose logging
-  strict: true, // Optional: Enable strict mode for schema checks
+  verbose: true,
+  strict: true,
 });
