@@ -11,18 +11,21 @@ if (!connectionString) {
   throw new Error("DATABASE_URL environment variable is not set.");
 }
 
-// Create the PostgreSQL client
 const client = new Client({
   connectionString: connectionString,
+  host: new URL(connectionString).hostname,
+  family: 4,
 });
 
-client
-  .connect()
-  .then(() => console.log("Connected to Supabase PostgreSQL"))
-  .catch((err) => console.error("Connection error", err.stack));
+client.connect((err) => {
+  if (err) {
+    console.error("Explicit connection error:", err.stack);
+  } else {
+    console.log("Connected to Supabase PostgreSQL via client.connect()");
+  }
+});
 
 // Create the Drizzle instance
 const db = drizzle(client, { schema });
 
-// Export the Drizzle instance and potentially the client
 module.exports = { db, client };
