@@ -1,13 +1,14 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Bell, Home, History, BarChart2, Settings, Menu } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useState } from "react"
-import DeviceConnectionButton from "./device-connection-button"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { UserButton } from "@clerk/nextjs";
+import { BarChart2, Bell, History, Home, Menu, Settings } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import DeviceConnectionButton from "./device-connection-button";
 
 const routes = [
   {
@@ -30,11 +31,11 @@ const routes = [
     path: "/preferences",
     icon: Settings,
   },
-]
+];
 
 export default function Navbar() {
-  const pathname = usePathname()
-  const [open, setOpen] = useState(false)
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -49,7 +50,10 @@ export default function Navbar() {
             </SheetTrigger>
             <SheetContent side="left" className="pr-0">
               <div className="px-7">
-                <Link href="/" className="flex items-center gap-2 font-semibold">
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 font-semibold"
+                >
                   <Bell className="h-5 w-5" />
                   <span>Smart Doorbell</span>
                 </Link>
@@ -62,7 +66,9 @@ export default function Navbar() {
                     onClick={() => setOpen(false)}
                     className={cn(
                       "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium",
-                      pathname === route.path ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                      pathname === route.path
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted"
                     )}
                   >
                     <route.icon className="h-5 w-5" />
@@ -83,7 +89,9 @@ export default function Navbar() {
                 href={route.path}
                 className={cn(
                   "flex items-center gap-2 text-sm font-medium",
-                  pathname === route.path ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  pathname === route.path
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {route.name}
@@ -91,10 +99,11 @@ export default function Navbar() {
             ))}
           </nav>
         </div>
-        <div>
+        <div className="flex items-center gap-4">
           <DeviceConnectionButton />
+          <UserButton afterSignOutUrl="/" />
         </div>
       </div>
     </header>
-  )
+  );
 }
