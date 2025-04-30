@@ -1,16 +1,18 @@
-import ModeUsageChart from "@/components/analytics/mode-usage-chart"
-import MotionChart from "@/components/analytics/motion-chart"
-import RingFrequencyChart from "@/components/analytics/ring-frequency-chart"
-import { Separator } from "@/components/ui/separator"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import ModeUsageChart from "@/components/analytics/mode-usage-chart";
+import MotionChart from "@/components/analytics/motion-chart";
+import RingFrequencyChart from "@/components/analytics/ring-frequency-chart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground">View insights and trends from your smart home system</p>
+        <p className="text-muted-foreground">
+          View insights and trends from your smart home system
+        </p>
       </div>
 
       <Separator />
@@ -107,5 +109,5 @@ export default function AnalyticsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

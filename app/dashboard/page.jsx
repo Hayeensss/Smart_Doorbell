@@ -1,9 +1,9 @@
-import ModeSelector from "@/components/dashboard/mode-selector"
-import QuickActions from "@/components/dashboard/quick-actions"
-import { Separator } from "@/components/ui/separator"
-import { Card, CardContent } from "@/components/ui/card"
-import LiveStream from "@/components/live/live-stream"
-import AudioControls from "@/components/live/audio-controls"
+import ModeSelector from "@/components/dashboard/mode-selector";
+import QuickActions from "@/components/dashboard/quick-actions";
+import AudioControls from "@/components/live/audio-controls";
+import LiveStream from "@/components/live/live-stream";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export default function DashboardPage() {
   return (
@@ -11,7 +11,9 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Monitor and control your connected devices</p>
+          <p className="text-muted-foreground">
+            Monitor and control your connected devices
+          </p>
         </div>
         <ModeSelector />
       </div>
@@ -23,7 +25,9 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Live View</h1>
-          <p className="text-muted-foreground">Watch real-time video from your devices</p>
+          <p className="text-muted-foreground">
+            Watch real-time video from your devices
+          </p>
         </div>
 
         <Separator />
@@ -42,5 +46,5 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,14 +1,16 @@
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import UserSettings from "@/components/preferences/user-settings"
-import NotificationSettings from "@/components/preferences/notification-settings"
+import NotificationSettings from "@/components/preferences/notification-settings";
+import UserSettings from "@/components/preferences/user-settings";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function PreferencesPage() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Preferences</h1>
-        <p className="text-muted-foreground">Manage your account and device settings</p>
+        <p className="text-muted-foreground">
+          Manage your account and device settings
+        </p>
       </div>
 
       <Separator />
@@ -27,5 +29,5 @@ export default function PreferencesPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
