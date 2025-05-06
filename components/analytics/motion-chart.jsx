@@ -84,4 +84,4 @@ export default function MotionChart({ period = "daily" }) {
       </ResponsiveContainer>
     </div>
   )
-}
+} 

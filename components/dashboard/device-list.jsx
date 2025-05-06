@@ -112,4 +112,4 @@ export default function DeviceList({ filter = "all" }) {
       )}
     </div>
   )
-}
+} 

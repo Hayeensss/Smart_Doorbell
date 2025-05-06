@@ -99,4 +99,4 @@ export default function NotificationSettings() {
       </Card>
     </div>
   )
-}
+} 

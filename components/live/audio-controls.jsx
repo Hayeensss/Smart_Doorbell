@@ -56,4 +56,4 @@ export default function AudioControls() {
       </CardContent>
     </Card>
   )
-}
+} 

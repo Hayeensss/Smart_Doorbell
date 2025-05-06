@@ -66,4 +66,4 @@ export default function ModeUsageChart({ period = "daily" }) {
       </ResponsiveContainer>
     </div>
   )
-}
+} 

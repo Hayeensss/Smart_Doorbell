@@ -1,101 +1,173 @@
-// "use client"; removed
+"use client"
 
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { Bell, Camera, Radio } from "lucide-react";
-import { revalidatePath } from "next/cache";
+import { useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Camera, Bell, Radio, Play, Download, Calendar, AlertTriangle } from "lucide-react"
+import { format } from "date-fns"
 
-import { db } from "@/db";
-import { events as eventsTable } from "@/db/schema"; // devices might not be used in the simplified query
-import EventDisplay from "./EventDisplay"; // Import the new client component
+export default function EventList({ events, error }) {
+  const [expandedEvent, setExpandedEvent] = useState(null)
 
-// MockEvent interface removed
-
-export default async function EventList() {
-  let events = []; // Removed MockEvent[] type
-  let error = null; // Removed string | null type
-
-  try {
-    // --- Simplified data fetching from database for debugging ---
-    const rawDbData = await db
-      .select({
-        eventId: eventsTable.eventId,
-        deviceId: eventsTable.deviceId,
-        eventType: eventsTable.eventType,
-        occurredAt: eventsTable.occurredAt,
-        // deviceName: devices.name, // Temporarily removed for debugging
-      })
-      .from(eventsTable)
-      // .leftJoin(devices, eq(eventsTable.deviceId, devices.deviceId)) // Temporarily removed for debugging
-      // .orderBy(desc(eventsTable.occurredAt)) // Temporarily removed for debugging
-      .limit(10);
-
-    // Map rawDbData to event structure
-    events = rawDbData.map((item) => ({
-      id: item.eventId,
-      deviceId: item.deviceId,
-      deviceName: "Unknown Device (Debug)", // Placeholder as deviceName is not fetched
-      eventType: item.eventType,
-      timestamp: new Date(item.occurredAt),
-      hasRecording: false,
-      thumbnail: null,
-    }));
-  } catch (err) {
-    console.error("Error fetching events from DB (simplified query):", err);
-    if (err instanceof Error) {
-      error = `Database error (simplified query): ${err.message}`;
-    } else {
-      error =
-        "An unknown error occurred while fetching events (simplified query).";
-    }
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-destructive">
+        <AlertTriangle className="h-12 w-12 mb-4" />
+        <h2 className="text-xl font-semibold">Error loading events</h2>
+        <p>{error}</p>
+      </div>
+    )
   }
 
-  const getEventIcon = (deviceName) => {
-    // Removed string type from deviceName
-    const lowerName = deviceName.toLowerCase();
-    if (lowerName.includes("camera")) return <Camera className="h-4 w-4" />;
-    if (lowerName.includes("doorbell")) return <Bell className="h-4 w-4" />;
-    if (lowerName.includes("sensor")) return <Radio className="h-4 w-4" />;
-    return <Camera className="h-4 w-4" />;
-  };
+  if (!events || events.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+        <Calendar className="h-12 w-12 mb-4" />
+        <h2 className="text-xl font-semibold">No events found</h2>
+        <p>There are no events to display at this time.</p>
+      </div>
+    )
+  }
+
+  const getEventIcon = (type) => {
+    switch (type) {
+      case "camera":
+        return <Camera className="h-4 w-4" />
+      case "doorbell":
+        return <Bell className="h-4 w-4" />
+      case "sensor":
+        return <Radio className="h-4 w-4" />
+      default:
+        return <Camera className="h-4 w-4" />
+    }
+  }
 
   const getEventBadge = (eventType) => {
-    // Removed MockEvent["eventType"] type
     switch (eventType) {
       case "motion":
-        return <Badge variant="secondary">Motion</Badge>;
+        return <Badge variant="secondary">Motion</Badge>
       case "ring":
-        return <Badge>Ring</Badge>;
+        return <Badge>Ring</Badge>
       default:
-        return <Badge variant="outline">Event</Badge>;
+        return <Badge variant="outline">Event</Badge>
     }
-  };
-
-  const eventsByDate = events.reduce((acc, event) => {
-    // Removed <Record<string, MockEvent[]>> type from reduce
-    const dateKey =
-      event.timestamp instanceof Date && !isNaN(event.timestamp.valueOf())
-        ? format(event.timestamp, "yyyy-MM-dd")
-        : "unknown-date";
-    if (!acc[dateKey]) {
-      acc[dateKey] = [];
-    }
-    acc[dateKey].push(event);
-    return acc;
-  }, {});
-
-  async function handleTryAgain() {
-    "use server";
-    revalidatePath("/history");
   }
 
+  // Group events by date
+  const eventsByDate = events.reduce((acc, event) => {
+    const dateKey = format(new Date(event.timestamp), "yyyy-MM-dd") // Ensure timestamp is a Date object
+    if (!acc[dateKey]) {
+      acc[dateKey] = []
+    }
+    acc[dateKey].push(event)
+    return acc
+  }, {})
+
   return (
-    <EventDisplay
-      events={events}
-      error={error}
-      getEventIcon={getEventIcon}
-      getEventBadge={getEventBadge}
-      onTryAgain={handleTryAgain}
-    />
-  );
+    <div className="space-y-6">
+      {Object.entries(eventsByDate).map(([dateKey, events]) => (
+        <div key={dateKey} className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-medium">{format(new Date(dateKey), "EEEE, MMMM d, yyyy")}</h3>
+          </div>
+
+          <div className="space-y-2">
+            {events.map((event) => (
+              <Card key={event.id} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="flex flex-col sm:flex-row">
+                    {event.thumbnail && (
+                      <div className="relative sm:w-48 h-32">
+                        <img
+                          src={event.thumbnail || "/placeholder.svg"}
+                          alt={`Event from ${event.deviceName || 'Unknown Device'}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {event.hasRecording && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
+                            <Button variant="secondary" size="sm" className="gap-1">
+                              <Play className="h-4 w-4" />
+                              Play
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="p-4 flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            {getEventIcon(event.deviceType)}
+                            <span className="font-medium">{event.deviceName || 'Unknown Device'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            {getEventBadge(event.eventType)}
+                            <span className="text-sm text-muted-foreground">{format(event.timestamp, "h:mm a")}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          {event.hasRecording && (
+                            <Button variant="ghost" size="icon">
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpandedEvent(expandedEvent === event.id ? null : event.id)}
+                          >
+                            {expandedEvent === event.id ? "Less" : "More"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {expandedEvent === event.id && (
+                        <div className="mt-4 pt-4 border-t text-sm">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <div className="text-muted-foreground">Device</div>
+                              <div>{event.deviceName || 'Unknown Device'}</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">Event Type</div>
+                              <div className="capitalize">{event.eventType}</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">Date</div>
+                              <div>{format(event.timestamp, "MMM d, yyyy")}</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">Time</div>
+                              <div>{format(event.timestamp, "h:mm:ss a")}</div>
+                            </div>
+                          </div>
+
+                          {event.hasRecording && (
+                            <div className="mt-4 flex gap-2">
+                              <Button size="sm" className="gap-1">
+                                <Play className="h-4 w-4" />
+                                Play Recording
+                              </Button>
+                              <Button variant="outline" size="sm" className="gap-1">
+                                <Download className="h-4 w-4" />
+                                Download
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }

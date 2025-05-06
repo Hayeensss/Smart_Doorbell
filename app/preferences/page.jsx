@@ -2,8 +2,27 @@ import NotificationSettings from "@/components/preferences/notification-settings
 import UserSettings from "@/components/preferences/user-settings";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getUserPreferences } from "@/db/db";
+import { auth } from "@clerk/nextjs/server";
 
-export default function PreferencesPage() {
+export default async function PreferencesPage() {
+  let userPreferences = null;
+  let preferencesError = null;
+
+  const { userId } = auth();
+
+  if (!userId) {
+    console.error("PreferencesPage: User not authenticated on server.");
+    preferencesError = "User not authenticated. Please sign in.";
+  } else {
+    try {
+      userPreferences = await getUserPreferences(userId);
+    } catch (error) {
+      console.error("PreferencesPage: Exception while fetching preferences on server:", error);
+      preferencesError = "An unexpected error occurred while loading settings.";
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -21,7 +40,7 @@ export default function PreferencesPage() {
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
         <TabsContent value="user">
-          <UserSettings />
+          <UserSettings initialPreferences={userPreferences} preferencesError={preferencesError} />
         </TabsContent>
 
         <TabsContent value="notifications">

@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata = {
   title: "Smart Doorbell",
   description: "Monitor and control your smart doorbell",
-  generator: "v0.dev",
+  authors: [{ name: "Hayeen" }],
 };
 
 export default function RootLayout({ children }) {

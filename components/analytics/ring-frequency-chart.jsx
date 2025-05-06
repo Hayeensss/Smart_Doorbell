@@ -91,4 +91,4 @@ export default function RingFrequencyChart({ period = "daily" }) {
       </ResponsiveContainer>
     </div>
   )
-}
+} 
