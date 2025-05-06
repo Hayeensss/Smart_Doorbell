@@ -6,8 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Camera, Bell, Radio, Eye, History } from "lucide-react"
 
-export default function DeviceCard({ device }) {
-  const getDeviceIcon = (type) => {
+interface Device {
+  id: string
+  name: string
+  type: "camera" | "doorbell" | "sensor" | string
+  status: "online" | "offline" | string
+  thumbnail?: string
+  battery: number
+  lastEvent: string
+  lastEventTime: string
+}
+
+export default function DeviceCard({ device }: { device: Device }) {
+  const getDeviceIcon = (type: string) => {
     switch (type) {
       case "camera":
         return <Camera className="h-4 w-4" />

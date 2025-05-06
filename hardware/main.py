@@ -5,8 +5,11 @@ import os
 from datetime import datetime
 from picamera2 import Picamera2, encoders
 import threading
+import queue
 from PiicoDev_VEML6030 import PiicoDev_VEML6030
+from cloudinary_api import upload_image, upload_video, insert_media_record, insert_event_record
 
+doorbell_id = "a1b2c3d4-e5f6-7890-1234-567890abcdef"
 
 # === 配置区域 ===
 
@@ -58,9 +61,10 @@ def take_photo():
     filename = f"Record/photo_{ts}.jpg"
     camera.capture_file(filename)
     print(f"📸 拍照成功：{filename}")
+    return filename
 
 # 视频录制函数
-def record_video():
+def record_video(output_queue):
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     video_file = f"Record/video_{ts}.h264"
     audio_file = f"Record/audio_{ts}.wav"
@@ -97,12 +101,12 @@ def record_video():
     os.remove(video_file)
     os.remove(audio_file)
     print(f"🎥 视频合成完成：{output_file}")
+    output_queue.put(output_file) # Put the output file path into the queue for upload
 
     # 恢复为拍照模式
     camera.configure(camera.create_still_configuration(main={"size": (1280, 720)}))
     camera.start()
     time.sleep(1)
-
 
 
 # 距离测量函数
@@ -184,13 +188,41 @@ def camera_capture():
                     print("🎬 检测到 5 秒内快速按下 3 次 → 开始录制")
                     play_audio("Audios/countdown.wav", card=OUTDOOR_SPEAKER_CARD)
                     play_audio("Audios/bi_tone.wav", card=OUTDOOR_SPEAKER_CARD)
-                    record_thread = threading.Thread(target=record_video)
+                    result_queue = queue.Queue()
+                    record_thread = threading.Thread(target=record_video, args=(result_queue,))
                     record_thread.start()
                     record_thread.join() 
             
                     play_audio("Audios/bi_tone.wav", card=OUTDOOR_SPEAKER_CARD)
                     play_audio("Audios/videofinish.wav", card=OUTDOOR_SPEAKER_CARD)
                     # Ryan, 这里按钮了，储存了一个10s视频，这里可以连API
+                    if not result_queue.empty():
+                        video_file = result_queue.get()
+                    else:
+                        print("Failed to get video result.")
+                    
+                    # Upload video to Cloudinary
+                    result = upload_video(video_file)
+
+                    if result["status"] == "success":
+                        print(f"Upload successful: {result['url']}")
+
+                        # 3. Insert media record
+                        media_id = insert_media_record(
+                            event_ref=event_id,
+                            media_type="video",
+                            url=result["url"]
+                        )
+
+                        if media_id:
+                            print(f"Media record created with ID: {media_id}")
+                        else:
+                            print("Failed to insert media record.")
+                    else:
+                        print(f"Upload failed: {result['message']}")
+
+
+
                     press_times.clear()
                     waiting_for_third_press = False
                     first_press_time = None
@@ -204,8 +236,43 @@ def camera_capture():
                     first_press_time = now
                     print("🔔 第一次按下 → 拍照 + 门铃")
                     play_dual_audio("Audios/doorbell.wav")
-                    take_photo()
+                    image_file = take_photo()
                     # Ryan, 这里按钮了，储存了一个图片，这里可以连API
+
+                    # Create event record
+                    event_id = insert_event_record(
+                        device_id=doorbell_id,
+                        event_type="button_pressed",
+                        payload={"message": "Doorbell rings"}
+                    )
+
+                    if not event_id:
+                        print("Failed to insert event record.")
+                    else:
+                        print(f"Event created with ID: {event_id}")
+
+                        # Upload photo to Cloudinary
+                        result = upload_image(image_file)
+
+                        if result["status"] == "success":
+                            print(f"Upload successful: {result['url']}")
+
+                            # 3. Insert media record
+                            media_id = insert_media_record(
+                                event_ref=event_id,
+                                media_type="image",
+                                url=result["url"]
+                            )
+
+                            if media_id:
+                                print(f"Media record created with ID: {media_id}")
+                            else:
+                                print("Failed to insert media record.")
+                        else:
+                            print(f"Upload failed: {result['message']}")
+
+
+                    
 
                 # 第二次按下（20s 内）
                 elif not waiting_for_third_press and now - first_press_time < 20:
@@ -213,9 +280,31 @@ def camera_capture():
                     waiting_for_third_press = True
                     print("📢 20 秒内再次按下 → 再拍照 + 门铃 + 提示音")
                     play_dual_audio("Audios/doorbell.wav")
-                    take_photo()
+                    image_file = take_photo()
                     play_audio("Audios/press3times.wav", card=OUTDOOR_SPEAKER_CARD)
                     # Ryan, 这里按钮了，储存了一个图片，这里可以连API
+
+                    # Upload photo to Cloudinary
+                    result = upload_image(image_file)
+
+                    if result["status"] == "success":
+                        print(f"Upload successful: {result['url']}")
+
+                        # 3. Insert media record
+                        media_id = insert_media_record(
+                            event_ref=event_id,
+                            media_type="image",
+                            url=result["url"]
+                        )
+
+                        if media_id:
+                            print(f"Media record created with ID: {media_id}")
+                        else:
+                            print("Failed to insert media record.")
+                    else:
+                        print(f"Upload failed: {result['message']}")
+
+
 
                 time.sleep(1)
 
