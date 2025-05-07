@@ -33,6 +33,7 @@ This project is a smart doorbell application designed to monitor and control you
 
 1.  Create a `.env` file in the root of the project. You can copy `.env.example` if it exists, or create a new file.
 2.  Add the necessary environment variables. Key variables include:
+
     ```env
     # Clerk Authentication
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="your_clerk_publishable_key"
@@ -50,6 +51,7 @@ This project is a smart doorbell application designed to monitor and control you
     # MQTT_USERNAME="your_mqtt_username"
     # MQTT_PASSWORD="your_mqtt_password"
     ```
+
     **Note:** Never commit your `.env` file or any other file containing sensitive credentials to version control. Ensure it's listed in your `.gitignore` file (which it is by default for `.env*`).
     You can find your Clerk keys on the API Keys page in the Clerk Dashboard. For the `DATABASE_URL`, use the connection string provided by your PostgreSQL host (e.g., Supabase).
 
@@ -70,7 +72,6 @@ Smart_Doorbell/
 │   ├── dashboard/           # Dashboard page route and components
 │   ├── history/             # History page route and components
 │   ├── preferences/         # Preferences page route and components
-│   ├── test/                # Test page route
 │   ├── layout.tsx           # Root layout for the app
 │   └── page.tsx             # Root page (e.g., landing page or main entry)
 ├── components/              # Shared React components
@@ -112,5 +113,4 @@ The main pages and their purposes are structured as follows:
 ├── /dashboard             # Main dashboard displaying [describe what the dashboard shows]
 ├── /history               # Shows a history of [describe what history is shown, e.g., doorbell events, recordings]
 ├── /preferences           # Allows users to configure their preferences for [describe what can be configured]
-└── /test                  # A page for testing components or features during development
 ```
