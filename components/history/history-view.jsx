@@ -2,89 +2,101 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import EventFilters from "@/components/history/event-filters";
-import EventList from "@/components/history/event-list";
+import EventDisplayArea from "@/components/history/event-display-area";
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const initialFiltersState = {
-  date: new Date(),
-  timeRange: "24h",
-  eventTypes: {
-    motion: true,
-    ring: true,
-    person: true,
-  },
-};
-
-export default function HistoryView({ initialEvents, initialError }) {
-  const [filters, setFilters] = useState(initialFiltersState);
+export default function HistoryView({ 
+  initialEvents, 
+  serverSideInitialFilters, 
+  currentPage, 
+  itemsPerPage, 
+  totalCount, 
+  availableEventTypes
+}) {
+  const [filters, setFilters] = useState(serverSideInitialFilters);
   const [events, setEvents] = useState(initialEvents || []);
-  const [isLoading, setIsLoading] = useState(!initialEvents && !initialError);
-  const [error, setError] = useState(initialError || null);
+  const [isLoading, setIsLoading] = useState(!initialEvents);
 
-  const fetchEvents = useCallback(async (currentFilters) => {
-    setIsLoading(true);
-    setError(null); // Clear previous client-side errors before a new fetch
-
-    const queryParams = new URLSearchParams({
-      limit: 10,
-      date: currentFilters.date instanceof Date ? currentFilters.date.toISOString() : new Date(currentFilters.date).toISOString(),
-      timeRange: currentFilters.timeRange,
-      eventTypes: JSON.stringify(currentFilters.eventTypes),
-    });
-
-    try {
-      const response = await fetch(`/api/events?${queryParams.toString()}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({})); // Attempt to get error details
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-      const fetchedEvents = await response.json();
-      setEvents(fetchedEvents);
-    } catch (err) {
-      console.error("Error fetching events in HistoryView:", err);
-      setError(err.message || "An unknown error occurred while fetching events.");
-      setEvents([]); // Clear events on error
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const router = useRouter();
+  const pathname = usePathname();
+  const currentSearchParams = useSearchParams();
 
   useEffect(() => {
-    // Only fetch if there were no initial events and no initial error,
-    // implying data wasn't successfully loaded server-side.
-    // Or, if filters change client-side after initial load.
-    const hasInitialData = initialEvents && initialEvents.length > 0;
-    const hasInitialError = !!initialError;
+    setEvents(initialEvents || []);
+    setIsLoading(false);
+  }, [initialEvents]);
 
-    if ((!hasInitialData && !hasInitialError) || (hasInitialData && JSON.stringify(filters) !== JSON.stringify(initialFiltersState))) {
-      // If initial data was present but filters changed, fetch new data.
-      // If no initial data and no error, it means we need to fetch for the first time on client.
-      fetchEvents(filters);
+  useEffect(() => {
+    setFilters(serverSideInitialFilters);
+  }, [serverSideInitialFilters]);
+
+  const handlePageChange = useCallback((newPage) => {
+    const newParams = new URLSearchParams(currentSearchParams.toString());
+    newParams.set('page', newPage.toString());
+    router.push(`${pathname}?${newParams.toString()}`);
+  }, [router, pathname, currentSearchParams]);
+
+  const handleApplyFilters = useCallback((appliedFilters) => {
+    const newParams = new URLSearchParams(currentSearchParams.toString());
+    let dateParam = appliedFilters.date;
+    if (dateParam instanceof Date) {
+      dateParam = dateParam.toISOString().split('T')[0];
     }
-  }, [filters, fetchEvents, initialEvents, initialError]); // Added initialEvents and initialError to deps
+    newParams.set('date', dateParam);
+    newParams.set('timeRange', appliedFilters.timeRange);
+    newParams.set('eventTypes', JSON.stringify(appliedFilters.eventTypes));
+    newParams.set('page', '1');
+    router.push(`${pathname}?${newParams.toString()}`);
+  }, [router, pathname, currentSearchParams]);
 
   const handleFiltersChange = (newFilterValues) => {
     setFilters(prevFilters => ({ ...prevFilters, ...newFilterValues }));
   };
 
-  const handleApplyFilters = (appliedFilters) => {
-    setFilters(appliedFilters);
-  };
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <div>
         <EventFilters 
-          currentFilters={filters} 
-          onFiltersChange={handleFiltersChange} 
-          onApplyFilters={handleApplyFilters} 
+          currentFilters={filters}
+          onFiltersChange={handleFiltersChange}
+          onApplyFilters={handleApplyFilters}
+          availableEventTypes={availableEventTypes}
         />
       </div>
-      <div className="lg:col-span-3">
-        {isLoading && <p>Loading events...</p>}
-        {/* Display initialError passed from server if no client-side error has occurred yet */}
-        {/* And ensure we are not loading client-side */}
-        {!isLoading && error && <EventList events={[]} error={error} />}
-        {!isLoading && !error && <EventList events={events} error={null} />}
+      <div className="lg:col-span-3 space-y-4">
+        <EventDisplayArea 
+          isLoading={isLoading} 
+          events={events}
+        />
+        {totalCount > 0 && totalPages > 1 && (
+          <div className="flex items-center justify-center space-x-2 py-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="sr-only">Previous page</span>
+            </Button>
+            <span className="text-sm font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+              <span className="sr-only">Next page</span>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

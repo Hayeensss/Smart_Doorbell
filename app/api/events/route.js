@@ -4,7 +4,6 @@ import { getRecentEventsWithDeviceNames } from '@/db/db';
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
 
-
   const limit = parseInt(searchParams.get('limit')) || 10;
   const date = searchParams.get('date') ? new Date(searchParams.get('date')) : new Date();
   const timeRange = searchParams.get('timeRange') || '24h';
@@ -20,8 +19,7 @@ export async function GET(request) {
       eventTypes = JSON.parse(eventTypesQuery);
     }
   } catch (e) {
-    console.warn('Could not parse eventTypes query parameter:', e.message);
-   
+    console.error('Could not parse eventTypes query parameter:', e.message);
   }
 
   const filters = {
@@ -34,7 +32,6 @@ export async function GET(request) {
     const events = await getRecentEventsWithDeviceNames(limit, filters);
     return NextResponse.json(events);
   } catch (error) {
-    console.error('API error fetching events:', error);
     return NextResponse.json(
       { message: error.message || 'Failed to fetch events' },
       { status: 500 }

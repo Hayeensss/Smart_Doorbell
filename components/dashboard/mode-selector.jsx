@@ -1,9 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Home, Briefcase, Moon, ChevronDown } from "lucide-react"
+import { Home, Briefcase, Moon } from "lucide-react"
 
 const modes = [
   {
@@ -26,33 +23,23 @@ const modes = [
   },
 ]
 
-export default function ModeSelector() {
-  const [currentMode, setCurrentMode] = useState(modes[0])
+export default function ModeSelector({ activeModeId }) {
+  const currentMode = modes.find(mode => mode.id === activeModeId) || modes[0]
+
+  if (!currentMode) {
+    return (
+      <div className="flex items-center gap-2 p-2 border rounded-md bg-muted text-muted-foreground">
+        <span>Mode Undefined</span>
+      </div>
+    )
+  }
+
+  const IconComponent = currentMode.icon
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-full md:w-auto justify-between">
-          <div className="flex items-center gap-2">
-            <currentMode.icon className="h-4 w-4" />
-            <span>{currentMode.name}</span>
-          </div>
-          <ChevronDown className="h-4 w-4 ml-2" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        {modes.map((mode) => (
-          <DropdownMenuItem key={mode.id} onClick={() => setCurrentMode(mode)} className="cursor-pointer">
-            <div className="flex items-center gap-2">
-              <mode.icon className="h-4 w-4" />
-              <div>
-                <div>{mode.name}</div>
-                <div className="text-xs text-muted-foreground">{mode.description}</div>
-              </div>
-            </div>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-2 p-2 border rounded-md bg-background shadow-sm">
+      <IconComponent className="h-5 w-5 text-primary" />
+      <span className="font-medium text-foreground">{currentMode.name}</span>
+    </div>
   )
 } 

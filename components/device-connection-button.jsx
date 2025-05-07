@@ -20,7 +20,6 @@ export default function DeviceConnectionButton() {
 
   const handleConnect = () => {
     setIsConnecting(true)
-    // Simulate connection process
     setTimeout(() => {
       setIsConnected(true)
       setIsConnecting(false)

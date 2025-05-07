@@ -3,7 +3,7 @@ const { Client } = require("pg");
 const dotenv = require("dotenv");
 const schema = require("./schema");
 
-dotenv.config({ path: ".env" }); // Load environment variables
+dotenv.config({ path: ".env" });
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -20,12 +20,9 @@ const client = new Client({
 client.connect((err) => {
   if (err) {
     console.error("Explicit connection error:", err.stack);
-  } else {
-    console.log("Connected to Supabase PostgreSQL via client.connect()");
   }
 });
 
-// Create the Drizzle instance
 const db = drizzle(client, { schema });
 
 module.exports = { db, client };

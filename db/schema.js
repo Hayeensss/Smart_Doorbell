@@ -82,7 +82,6 @@ const userPreferences = pgTable("user_preferences", {
     .defaultNow(),
 });
 
-// Export all tables and relations
 module.exports = {
   devices,
   devicesRelations,

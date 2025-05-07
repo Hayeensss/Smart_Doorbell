@@ -12,7 +12,7 @@ export default function LiveStream() {
   return (
     <div className="relative aspect-video bg-black">
       <div className="absolute inset-0 flex items-center justify-center">
-        <img src="/placeholder.svg?height=720&width=1280" alt="Live stream" className="w-full h-full object-cover" />
+        <img src="/live-stream-placeholder.svg?height=720&width=1280" alt="Live stream" className="w-full h-full object-cover" />
       </div>
 
       {/* Stream overlay with controls */}
@@ -24,7 +24,7 @@ export default function LiveStream() {
 
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-white text-sm">Front Door Camera</div>
+            <div className="text-white text-sm">Camera</div>
             <div className="text-white text-sm">12:34 PM</div>
           </div>
 

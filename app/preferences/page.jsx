@@ -4,33 +4,20 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUserPreferences } from "@/db/db";
 import { auth } from "@clerk/nextjs/server";
+import PreferencesHeader from "@/components/preferences/preferences-header";
+
+export const metadata = {
+  title: 'Preferences',
+  description: 'Configure your preferences for the smart doorbell',
+};
 
 export default async function PreferencesPage() {
-  let userPreferences = null;
-  let preferencesError = null;
-
-  const { userId } = auth();
-
-  if (!userId) {
-    console.error("PreferencesPage: User not authenticated on server.");
-    preferencesError = "User not authenticated. Please sign in.";
-  } else {
-    try {
-      userPreferences = await getUserPreferences(userId);
-    } catch (error) {
-      console.error("PreferencesPage: Exception while fetching preferences on server:", error);
-      preferencesError = "An unexpected error occurred while loading settings.";
-    }
-  }
+  const { userId } = await auth();
+  const userPreferences = await getUserPreferences(userId);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Preferences</h1>
-        <p className="text-muted-foreground">
-          Manage your account and device settings
-        </p>
-      </div>
+      <PreferencesHeader />
 
       <Separator />
 
@@ -40,7 +27,7 @@ export default async function PreferencesPage() {
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
         <TabsContent value="user">
-          <UserSettings initialPreferences={userPreferences} preferencesError={preferencesError} />
+          <UserSettings initialPreferences={userPreferences} />
         </TabsContent>
 
         <TabsContent value="notifications">

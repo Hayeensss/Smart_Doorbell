@@ -1,54 +1,55 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon } from "lucide-react"
-import { format } from "date-fns"
-import { cn } from "@/lib/utils"
+import DateFilter from "./filter-sections/date-filter";
+import TimeRangeFilter from "./filter-sections/time-range-filter";
+import EventTypesFilter from "./filter-sections/event-types-filter";
 
-export default function EventFilters({ currentFilters, onFiltersChange, onApplyFilters }) {
-  // Local state to manage intermediate changes before applying
-  const [localDate, setLocalDate] = useState(currentFilters.date);
+export default function EventFilters({ currentFilters, onApplyFilters, availableEventTypes = [] }) {
+  const [localDate, setLocalDate] = useState(currentFilters.date ? new Date(currentFilters.date) : new Date());
   const [localTimeRange, setLocalTimeRange] = useState(currentFilters.timeRange);
-  const [localEventTypes, setLocalEventTypes] = useState(currentFilters.eventTypes);
+  const [localEventTypes, setLocalEventTypes] = useState(() => {
+    const initialTypes = {};
+    availableEventTypes.forEach(type => {
+      initialTypes[type] = currentFilters.eventTypes?.[type] === true;
+    });
+    return initialTypes;
+  });
 
-  // Effect to update local state if props change from parent (e.g., reset button or initial load)
   useEffect(() => {
-    setLocalDate(currentFilters.date);
+    setLocalDate(currentFilters.date ? new Date(currentFilters.date) : new Date());
     setLocalTimeRange(currentFilters.timeRange);
-    setLocalEventTypes(currentFilters.eventTypes);
-  }, [currentFilters]);
+    const updatedTypes = {};
+    availableEventTypes.forEach(type => {
+      updatedTypes[type] = currentFilters.eventTypes?.[type] === true;
+    });
+    setLocalEventTypes(updatedTypes);
+  }, [currentFilters, availableEventTypes]);
 
-  const handleDateChange = (newDate) => {
+  const handleDateChange = useCallback((newDate) => {
     setLocalDate(newDate);
-    // Optionally call onFiltersChange immediately if you want live updates for date
-    // onFiltersChange({ date: newDate }); 
-  };
+  }, []);
 
-  const handleTimeRangeChange = (newTimeRange) => {
+  const handleTimeRangeChange = useCallback((newTimeRange) => {
     setLocalTimeRange(newTimeRange);
-  };
+  }, []);
 
-  const handleEventTypeChange = (type) => {
+  const handleEventTypeChange = useCallback((type) => {
     setLocalEventTypes(prev => ({
       ...prev,
       [type]: !prev[type],
     }));
-  };
+  }, []);
 
-  const handleApplyClick = () => {
+  const handleApplyClick = useCallback(() => {
     onApplyFilters({
       date: localDate,
       timeRange: localTimeRange,
       eventTypes: localEventTypes,
     });
-  };
+  }, [localDate, localTimeRange, localEventTypes, onApplyFilters]);
 
   return (
     <>
@@ -56,76 +57,13 @@ export default function EventFilters({ currentFilters, onFiltersChange, onApplyF
         <CardTitle>Filters</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label>Date</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn("w-full justify-start text-left font-normal", !localDate && "text-muted-foreground")}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {localDate ? format(localDate, "PPP") : "Pick a date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar mode="single" selected={localDate} onSelect={handleDateChange} initialFocus />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Time Range</Label>
-          <RadioGroup value={localTimeRange} onValueChange={handleTimeRangeChange}>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="24h" id="filter-24h" />
-              <Label htmlFor="filter-24h">Last 24 hours</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="7d" id="filter-7d" />
-              <Label htmlFor="filter-7d">Last 7 days</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="30d" id="filter-30d" />
-              <Label htmlFor="filter-30d">Last 30 days</Label>
-            </div>
-            {/* <div className="flex items-center space-x-2">
-              <RadioGroupItem value="custom" id="filter-custom" />
-              <Label htmlFor="filter-custom">Custom range</Label>
-            </div> */}
-          </RadioGroup>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Event Types</Label>
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="filter-motion"
-                checked={localEventTypes.motion}
-                onCheckedChange={() => handleEventTypeChange("motion")}
-              />
-              <Label htmlFor="filter-motion">Motion</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="filter-ring" 
-                checked={localEventTypes.ring} 
-                onCheckedChange={() => handleEventTypeChange("ring")} 
-              />
-              <Label htmlFor="filter-ring">Ring</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="filter-person"
-                checked={localEventTypes.person}
-                onCheckedChange={() => handleEventTypeChange("person")}
-              />
-              <Label htmlFor="filter-person">Person</Label>
-            </div>
-          </div>
-        </div>
-
+        <DateFilter localDate={localDate} onDateChange={handleDateChange} />
+        <TimeRangeFilter localTimeRange={localTimeRange} onTimeRangeChange={handleTimeRangeChange} />
+        <EventTypesFilter 
+          localEventTypes={localEventTypes} 
+          availableEventTypes={availableEventTypes} 
+          onEventTypeChange={handleEventTypeChange} 
+        />
         <Button className="w-full" onClick={handleApplyClick}>Apply Filters</Button>
       </CardContent>
     </>
