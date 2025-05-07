@@ -1,7 +1,7 @@
 const dotenv = require("dotenv");
 const { defineConfig } = require("drizzle-kit");
 
-dotenv.config({ path: ".env" }); // Load environment variables from .env
+dotenv.config({ path: ".env" });
 
 module.exports = defineConfig({
   schema: "./db/schema.js",
