@@ -3,11 +3,9 @@
 import { publishMessage } from "@/lib/mqtt-server-util.js";
 import { currentUser } from "@clerk/nextjs/server";
 
-export async function publishMqttMessageAction(
-  topic,
-  message
-) {
+export async function publishMqttMessageAction(message) {
   const user = await currentUser();
+  const topic = "doorbell-mode";
 
   if (!user) {
     console.error(
@@ -31,7 +29,8 @@ export async function publishMqttMessageAction(
     } else {
       return {
         success: false,
-        error: "Failed to publish message via MQTT. Check server logs for details.",
+        error:
+          "Failed to publish message via MQTT. Check server logs for details.",
       };
     }
   } catch (error) {
@@ -44,4 +43,4 @@ export async function publishMqttMessageAction(
       error: `An unexpected error occurred while trying to publish the message: ${errorMessage}`,
     };
   }
-} 
+}
