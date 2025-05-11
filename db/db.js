@@ -1,6 +1,6 @@
 const { db } = require("@/db");
-const { events: eventsTable, devices: devicesTable, userPreferences: userPreferencesTable } = require("./schema");
-const { eq, desc, and, or, gte, lte, sql } = require("drizzle-orm");
+const { events: eventsTable, devices: devicesTable, userPreferences: userPreferencesTable, media: mediaTable } = require("./schema");
+const { eq, desc, and, or, gte, lte, sql, inArray } = require("drizzle-orm");
 const { subDays, endOfDay, startOfDay } = require("date-fns");
 
 function buildEventWhereClause(filters = {}) {
@@ -45,7 +45,8 @@ async function getRecentEventsWithDeviceNames(limit = 10, offset = 0, filters = 
   try {
     const finalCondition = buildEventWhereClause(filters);
 
-    const rawDbData = await db
+    // First, get all events
+    const rawEvents = await db
       .select({
         eventId: eventsTable.eventId,
         deviceId: eventsTable.deviceId,
@@ -59,16 +60,74 @@ async function getRecentEventsWithDeviceNames(limit = 10, offset = 0, filters = 
       .orderBy(desc(eventsTable.occurredAt))
       .limit(limit)
       .offset(offset);
-
-    const formattedEvents = rawDbData.map((item) => ({
-      id: item.eventId,
-      deviceId: item.deviceId,
-      deviceName: item.deviceName || "Unknown Device",
-      eventType: item.eventType,
-      timestamp: new Date(item.occurredAt),
-      hasRecording: false,
-      thumbnail: null,
-    }));
+      
+    // Get all media for these events in a separate query
+    const eventIds = rawEvents.map(event => event.eventId);
+    
+    const mediaItems = eventIds.length > 0 
+      ? await db
+          .select({
+            eventRef: mediaTable.eventRef,
+            mediaId: mediaTable.mediaId,
+            mediaType: mediaTable.mediaType,
+            url: mediaTable.url,
+          })
+          .from(mediaTable)
+          .where(inArray(mediaTable.eventRef, eventIds))
+      : [];
+    
+    // Group media by event ID
+    const mediaByEvent = {};
+    mediaItems.forEach(item => {
+      if (!mediaByEvent[item.eventRef]) {
+        mediaByEvent[item.eventRef] = {
+          images: [],
+          videos: [],
+        };
+      }
+      
+      if (item.mediaType === 'image') {
+        mediaByEvent[item.eventRef].images.push({
+          id: item.mediaId,
+          url: item.url,
+        });
+      } else if (item.mediaType === 'video') {
+        mediaByEvent[item.eventRef].videos.push({
+          id: item.mediaId,
+          url: item.url,
+        });
+      }
+    });
+    
+    // Format events with their media
+    const formattedEvents = rawEvents.map(event => {
+      const eventMedia = mediaByEvent[event.eventId] || { images: [], videos: [] };
+      const hasImages = eventMedia.images.length > 0;
+      const hasVideos = eventMedia.videos.length > 0;
+      
+      // Choose thumbnail: prefer image over video
+      let thumbnail = null;
+      if (hasImages) {
+        thumbnail = eventMedia.images[0].url;
+      } else if (hasVideos) {
+        thumbnail = eventMedia.videos[0].url;
+      }
+      
+      return {
+        id: event.eventId,
+        deviceId: event.deviceId,
+        deviceName: event.deviceName || "Unknown Device",
+        eventType: event.eventType,
+        timestamp: new Date(event.occurredAt),
+        hasRecording: hasVideos,
+        thumbnail,
+        media: {
+          images: eventMedia.images,
+          videos: eventMedia.videos,
+        }
+      };
+    });
+    
     return formattedEvents;
   } catch (error) { 
     console.error("Error in getRecentEventsWithDeviceNames:", error);
