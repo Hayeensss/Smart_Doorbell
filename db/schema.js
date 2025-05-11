@@ -34,6 +34,7 @@ const events = pgTable("events", {
     .references(() => devices.deviceId),
   eventType: text("event_type").notNull(),
   payload: jsonb("payload").notNull().default({}),
+  sendEmail: boolean("send_email").notNull().default(false),
   occurredAt: timestamp("occurred_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
