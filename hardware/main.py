@@ -205,6 +205,7 @@ def camera_capture():
             
                     play_audio("Audios/bi_tone.wav", card=OUTDOOR_SPEAKER_CARD)
                     play_audio("Audios/videofinish.wav", card=OUTDOOR_SPEAKER_CARD)
+                    # --------------------- ryan ---------------------
                     # Ryan, 这里按钮了，储存了一个10s视频，这里可以连API
                     if not result_queue.empty():
                         video_file = result_queue.get()
@@ -240,7 +241,8 @@ def camera_capture():
                     last_second_press_time = None
                     time.sleep(1)
                     continue
-
+                
+                # --------------------- ryan ---------------------
                 # 第一次按下
                 if not first_press_time:
                     first_press_time = now
@@ -288,6 +290,7 @@ def camera_capture():
                     image_file = take_photo()
                     play_audio("Audios/press3times.wav", card=OUTDOOR_SPEAKER_CARD)
                     
+                    # --------------------- ryan ---------------------
                     # upload second image
                     result = upload_image(image_file)
 
