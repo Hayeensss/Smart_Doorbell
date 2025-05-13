@@ -1,8 +1,10 @@
 import psycopg2 
 from psycopg2 import sql
 from datetime import datetime, timezone
+from .retry import retry_db
 import json
 
+@retry_db(max_attempts=3, delay=2)
 def insert_media_record(event_ref, media_type, url, duration_s=None, transcript=None):
     """
     Inserts a new media record into the PostgreSQL 'media' table.
@@ -56,8 +58,9 @@ def insert_media_record(event_ref, media_type, url, duration_s=None, transcript=
     except Exception as e:
         print(f"Database connection or insertion failed: {e}")
         return None
-    
 
+
+@retry_db(max_attempts=3, delay=2)
 def insert_event_record(device_id, event_type, payload=None, occurred_at=None):
     """
     Inserts a new event record into the PostgreSQL 'events' table.

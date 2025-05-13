@@ -1,6 +1,7 @@
 import cloudinary
 import cloudinary.uploader
 import mimetypes
+from .retry import retry_uploader
 
 # Configuration       
 cloudinary.config( 

@@ -150,6 +150,17 @@ def light_and_distance_monitor():
         print("程序终止")
 
 
+def delete_file_safely(path):
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+            print(f"[CLEANUP] Deleted file: {path}")
+        else:
+            print(f"[CLEANUP] File not found: {path}")
+    except Exception as e:
+        print(f"[CLEANUP ERROR] Could not delete file: {path} -> {e}")
+
+
 def camera_capture():
     try:
         print("🎯 按钮测试程序已启动")
@@ -183,7 +194,6 @@ def camera_capture():
                 print("🔘 当前按键时间戳：", [round(t % 60, 2) for t in press_times])
 
                 # 三连击录像
-                # 三连击录像
                 if waiting_for_third_press and len(press_times) >= 3 and now - press_times[-3] < 5:
                     print("🎬 检测到 5 秒内快速按下 3 次 → 开始录制")
                     play_audio("Audios/countdown.wav", card=OUTDOOR_SPEAKER_CARD)
@@ -200,28 +210,29 @@ def camera_capture():
                         video_file = result_queue.get()
                     else:
                         print("Failed to get video result.")
-                    
-                    # Upload video to Cloudinary
+                        continue
+
+                    # upolad video 
                     result = upload_video(video_file)
 
-                    if result["status"] == "success":
-                        print(f"Upload successful: {result['url']}")
-
-                        # 3. Insert media record
-                        media_id = insert_media_record(
-                            event_ref=event_id,
-                            media_type="video",
-                            url=result["url"]
-                        )
-
-                        if media_id:
-                            print(f"Media record created with ID: {media_id}")
-                        else:
-                            print("Failed to insert media record.")
-                    else:
+                    if result["status"] != "success":
                         print(f"Upload failed: {result['message']}")
+                        delete_file_safely(video_file)
+                        continue
+                    
+                    # insert media record
+                    media_id = insert_media_record(
+                        event_ref=event_id,
+                        media_type="video",
+                        url=result["url"]
+                    )
 
+                    if not media_id:
+                        print("Failed to insert media record.")
+                        delete_file_safely(video_file)
+                        continue
 
+                    print(f"Video uploaded successfully: {result['url']}")
 
                     press_times.clear()
                     waiting_for_third_press = False
@@ -230,16 +241,14 @@ def camera_capture():
                     time.sleep(1)
                     continue
 
-
                 # 第一次按下
                 if not first_press_time:
                     first_press_time = now
-                    print("🔔 第一次按下 → 拍照 + 门铃")
+                    print("第一次按下 → 拍照 + 门铃")
                     play_dual_audio("Audios/doorbell.wav")
                     image_file = take_photo()
-                    # Ryan, 这里按钮了，储存了一个图片，这里可以连API
 
-                    # Create event record
+                    # insert event record
                     event_id = insert_event_record(
                         device_id=doorbell_id,
                         event_type="button_pressed",
@@ -247,65 +256,57 @@ def camera_capture():
                     )
 
                     if not event_id:
-                        print("Failed to insert event record.")
-                    else:
-                        print(f"Event created with ID: {event_id}")
+                        print("Failed to insert event record after retries.")
+                        delete_file_safely(image_file)
+                        continue
 
-                        # Upload photo to Cloudinary
-                        result = upload_image(image_file)
+                    # upload image
+                    result = upload_image(image_file)
 
-                        if result["status"] == "success":
-                            print(f"Upload successful: {result['url']}")
+                    if result["status"] != "success":
+                        print(f"Upload failed: {result['message']}")
+                        delete_file_safely(image_file)
+                        continue
 
-                            # 3. Insert media record
-                            media_id = insert_media_record(
-                                event_ref=event_id,
-                                media_type="image",
-                                url=result["url"]
-                            )
+                    # insert media record
+                    media_id = insert_media_record(
+                        event_ref=event_id,
+                        media_type="image",
+                        url=result["url"]
+                    )
 
-                            if media_id:
-                                print(f"Media record created with ID: {media_id}")
-                            else:
-                                print("Failed to insert media record.")
-                        else:
-                            print(f"Upload failed: {result['message']}")
+                    if not media_id:
+                        print("Failed to insert media record.")
+                        delete_file_safely(image_file)
+                        continue
 
-
-                    
-
-                # 第二次按下（20s 内）
                 elif not waiting_for_third_press and now - first_press_time < 20:
                     last_second_press_time = now
                     waiting_for_third_press = True
-                    print("📢 20 秒内再次按下 → 再拍照 + 门铃 + 提示音")
+                    print("20 秒内再次按下 → 再拍照 + 门铃 + 提示音")
                     play_dual_audio("Audios/doorbell.wav")
                     image_file = take_photo()
                     play_audio("Audios/press3times.wav", card=OUTDOOR_SPEAKER_CARD)
-                    # Ryan, 这里按钮了，储存了一个图片，这里可以连API
-
-                    # Upload photo to Cloudinary
+                    
+                    # upload second image
                     result = upload_image(image_file)
 
-                    if result["status"] == "success":
-                        print(f"Upload successful: {result['url']}")
-
-                        # 3. Insert media record
-                        media_id = insert_media_record(
-                            event_ref=event_id,
-                            media_type="image",
-                            url=result["url"]
-                        )
-
-                        if media_id:
-                            print(f"Media record created with ID: {media_id}")
-                        else:
-                            print("Failed to insert media record.")
-                    else:
+                    if result["status"] != "success":
                         print(f"Upload failed: {result['message']}")
+                        delete_file_safely(image_file)
+                        continue
 
+                    # insert second media record
+                    media_id = insert_media_record(
+                        event_ref=event_id,
+                        media_type="image",
+                        url=result["url"]
+                    )
 
-
+                    if not media_id:
+                        print("Failed to insert media record.")
+                        delete_file_safely(image_file)
+                        continue
                 time.sleep(1)
 
             time.sleep(0.1)
