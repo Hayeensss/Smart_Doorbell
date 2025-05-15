@@ -1,12 +1,12 @@
-import RPi.GPIO as GPIO
-import time
-import subprocess
 import os
-from datetime import datetime
-from picamera2 import Picamera2, encoders
+import subprocess
 import threading
-from PiicoDev_VEML6030 import PiicoDev_VEML6030
+import time
+from datetime import datetime
 
+import RPi.GPIO as GPIO
+from picamera2 import Picamera2, encoders
+from PiicoDev_VEML6030 import PiicoDev_VEML6030
 
 # === 配置区域 ===
 
@@ -42,6 +42,7 @@ light_sensor = PiicoDev_VEML6030()
 def play_audio(file, card, device=AUDIO_DEVICE):
     subprocess.run(["aplay", "-D", f"plughw:{card},{device}", file])
 
+
 # 播放双声道音频
 def play_dual_audio(file):
     t1 = threading.Thread(target=play_audio, args=(file, INDOOR_SPEAKER_CARD))
@@ -58,6 +59,7 @@ def take_photo():
     filename = f"Record/photo_{ts}.jpg"
     camera.capture_file(filename)
     print(f"📸 拍照成功：{filename}")
+
 
 # 视频录制函数
 def record_video():
@@ -79,21 +81,48 @@ def record_video():
 
     # 录音
     arecord_cmd = [
-        "arecord", "-D", f"hw:{MICROPHONE_CARD},0",
-        "-f", "S16_LE", "-r", "44100", "-c", "1",
-        "-t", "wav", "-d", "10", audio_file
+        "arecord",
+        "-D",
+        f"hw:{MICROPHONE_CARD},0",
+        "-f",
+        "S16_LE",
+        "-r",
+        "44100",
+        "-c",
+        "1",
+        "-t",
+        "wav",
+        "-d",
+        "10",
+        audio_file,
     ]
     arecord_proc = subprocess.Popen(arecord_cmd)
 
     # 录像
-    camera.start_recording(output=video_file, encoder=encoders.H264Encoder(bitrate=4000000))
+    camera.start_recording(
+        output=video_file, encoder=encoders.H264Encoder(bitrate=4000000)
+    )
     time.sleep(10)
     camera.stop_recording()
     camera.stop()
     arecord_proc.wait()
 
     # 合成音视频
-    subprocess.run(["ffmpeg", "-y", "-i", video_file, "-i", audio_file, "-c:v", "copy", "-c:a", "aac", output_file])
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            video_file,
+            "-i",
+            audio_file,
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            output_file,
+        ]
+    )
     os.remove(video_file)
     os.remove(audio_file)
     print(f"🎥 视频合成完成：{output_file}")
@@ -102,7 +131,6 @@ def record_video():
     camera.configure(camera.create_still_configuration(main={"size": (1280, 720)}))
     camera.start()
     time.sleep(1)
-
 
 
 # 距离测量函数
@@ -159,7 +187,11 @@ def camera_capture():
             now = time.time()
 
             # 自动重置机制：超过10秒未完成三连击
-            if waiting_for_third_press and last_second_press_time and (now - last_second_press_time > 20):
+            if (
+                waiting_for_third_press
+                and last_second_press_time
+                and (now - last_second_press_time > 20)
+            ):
                 print("⏱️ 超过20秒未完成三连击，自动重置状态")
                 waiting_for_third_press = False
                 press_times.clear()
@@ -167,7 +199,11 @@ def camera_capture():
                 last_second_press_time = None
 
             # 自动重置机制：首次按下后20秒未再按
-            if first_press_time and not waiting_for_third_press and (now - first_press_time > 20):
+            if (
+                first_press_time
+                and not waiting_for_third_press
+                and (now - first_press_time > 20)
+            ):
                 print("⏱️ 超过20秒未按第二次 → 自动重置为初始状态")
                 first_press_time = None
                 press_times.clear()
@@ -180,14 +216,18 @@ def camera_capture():
 
                 # 三连击录像
                 # 三连击录像
-                if waiting_for_third_press and len(press_times) >= 3 and now - press_times[-3] < 5:
+                if (
+                    waiting_for_third_press
+                    and len(press_times) >= 3
+                    and now - press_times[-3] < 5
+                ):
                     print("🎬 检测到 5 秒内快速按下 3 次 → 开始录制")
                     play_audio("Audios/countdown.wav", card=OUTDOOR_SPEAKER_CARD)
                     play_audio("Audios/bi_tone.wav", card=OUTDOOR_SPEAKER_CARD)
                     record_thread = threading.Thread(target=record_video)
                     record_thread.start()
-                    record_thread.join() 
-            
+                    record_thread.join()
+
                     play_audio("Audios/bi_tone.wav", card=OUTDOOR_SPEAKER_CARD)
                     play_audio("Audios/videofinish.wav", card=OUTDOOR_SPEAKER_CARD)
                     # Ryan, 这里按钮了，储存了一个10s视频，这里可以连API
@@ -197,7 +237,6 @@ def camera_capture():
                     last_second_press_time = None
                     time.sleep(1)
                     continue
-
 
                 # 第一次按下
                 if not first_press_time:
@@ -223,8 +262,6 @@ def camera_capture():
 
     except KeyboardInterrupt:
         print("🛑 手动终止")
-
-
 
 
 # === 主程序 ===

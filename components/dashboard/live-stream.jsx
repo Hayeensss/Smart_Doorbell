@@ -1,18 +1,23 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Play, Pause, Maximize, Volume2, VolumeX } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Maximize, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { useState } from "react";
 
 export default function LiveStream() {
-  const [isPlaying, setIsPlaying] = useState(true)
-  const [isMuted, setIsMuted] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
 
   return (
     <div className="relative aspect-video bg-black">
       <div className="absolute inset-0 flex items-center justify-center">
-        <img src="/live-stream-placeholder.svg?height=720&width=1280" alt="Live stream" className="w-full h-full object-cover" />
+        <iframe
+          src="https://video.arthurlian.com/video_feed"
+          title="Live stream"
+          className="w-full h-full object-cover"
+          allowFullScreen
+        />
       </div>
 
       {/* Stream overlay with controls */}
@@ -28,7 +33,12 @@ export default function LiveStream() {
             <div className="text-white text-sm">12:34 PM</div>
           </div>
 
-          <Slider defaultValue={[75]} max={100} step={1} className="w-full mb-4" />
+          <Slider
+            defaultValue={[75]}
+            max={100}
+            step={1}
+            className="w-full mb-4"
+          />
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -38,7 +48,11 @@ export default function LiveStream() {
                 className="text-white hover:bg-white/20"
                 onClick={() => setIsPlaying(!isPlaying)}
               >
-                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                {isPlaying ? (
+                  <Pause className="h-5 w-5" />
+                ) : (
+                  <Play className="h-5 w-5" />
+                )}
               </Button>
 
               <Button
@@ -47,16 +61,24 @@ export default function LiveStream() {
                 className="text-white hover:bg-white/20"
                 onClick={() => setIsMuted(!isMuted)}
               >
-                {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                {isMuted ? (
+                  <VolumeX className="h-5 w-5" />
+                ) : (
+                  <Volume2 className="h-5 w-5" />
+                )}
               </Button>
             </div>
 
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+            >
               <Maximize className="h-5 w-5" />
             </Button>
           </div>
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}
