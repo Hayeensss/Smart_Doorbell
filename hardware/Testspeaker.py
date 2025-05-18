@@ -17,13 +17,13 @@ def play_dual_audio(file):
     t1.join()
     t2.join()
 
-print("🔊 测试室内音响...")
+print("Testing indoor speaker...")
 play_audio("Audios/doorbell.wav", INDOOR_SPEAKER_CARD)
 time.sleep(1)
 
-print("🔊 测试室外音响...")
+print("Testing outdoor speaker...")
 play_audio("Audios/doorbell.wav", OUTDOOR_SPEAKER_CARD)
 time.sleep(1)
 
-print("🔊 测试两个音响同时播放...")
+print("Testing dual audio...")
 play_dual_audio("Audios/doorbell.wav")

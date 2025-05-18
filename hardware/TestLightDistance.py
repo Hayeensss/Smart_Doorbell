@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 import time
 from PiicoDev_VEML6030 import PiicoDev_VEML6030
 
-# === GPIO 设置 ===
+# === GPIO setting ===
 GPIO.setmode(GPIO.BCM)
 TRIG = 5
 ECHO = 6
@@ -12,11 +12,11 @@ GPIO.setup(TRIG, GPIO.OUT)
 GPIO.setup(ECHO, GPIO.IN)
 GPIO.setup(RELAY_PIN, GPIO.OUT, initial=GPIO.HIGH)
 
-# 初始化光照传感器
+# initialize light sensor
 light_sensor = PiicoDev_VEML6030()
 time.sleep(1)
 
-# 距离测量函数
+# define the function to get distance
 def get_distance_cm():
     GPIO.output(TRIG, False)
     time.sleep(0.05)
@@ -33,26 +33,26 @@ def get_distance_cm():
     distance_cm = round(pulse_duration * 17150, 2)
     return distance_cm
 
-# 主监测循环
+# main loop of monitoring
 try:
-    print("✅ 正在监测环境亮度与前方距离...")
+    print("Testing light and distance sensor...")
     while True:
         lux = light_sensor.read()
         distance = get_distance_cm()
 
-        print(f"光照: {lux:.2f} lux | 距离: {distance:.2f} cm")
+        print(f"Light: {lux:.2f} lux | Distance: {distance:.2f} cm")
 
         if lux < 50 and distance < 100:
-            GPIO.output(RELAY_PIN, GPIO.LOW)  # 开灯
-            print("💡 天黑 + 有人靠近 → 开灯")
+            GPIO.output(RELAY_PIN, GPIO.LOW)  # Switch on the light
+            print("Dark + Close → Switch on the light")
         else:
-            GPIO.output(RELAY_PIN, GPIO.HIGH)  # 关灯
-            print("🌞 光线充足或无人靠近 → 灭灯")
+            GPIO.output(RELAY_PIN, GPIO.HIGH)  # Switch off the light
+            print("Light + Far → Switch off the light")
 
         time.sleep(1)
 
 except KeyboardInterrupt:
-    print("程序终止")
+    print("Terminating the program...")
 
 finally:
     GPIO.cleanup()
