@@ -8,45 +8,48 @@ import threading
 from PiicoDev_VEML6030 import PiicoDev_VEML6030
 from flask import Flask, Response
 import cv2
+from cloudinary_api import upload_image, upload_video, insert_media_record, insert_event_record
 
+# === Configuration ===
 
-# === 配置区域 ===
-
-# 扩音器，麦克风和按钮引脚
+# Speaker, microphone, and button pin
 BUTTON_PIN = 10
 MICROPHONE_CARD = 3
 OUTDOOR_SPEAKER_CARD = 2
 INDOOR_SPEAKER_CARD = 4
 AUDIO_DEVICE = 0
-
-# 距离传感器/灯泡引脚
+# GPIO pins for distance sensor and relay
 TRIG = 5
 ECHO = 6
 RELAY_PIN = 17
+# Doorbell ID
+doorbell_id = "a1b2c3d4-e5f6-7890-1234-567890abcdef"
 
+# === Initialize ===
 
-# === 初始化引脚 ===
+# Initialize GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(RELAY_PIN, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(TRIG, GPIO.OUT)
 GPIO.setup(ECHO, GPIO.IN)
-
-
-# 初始化相机和光照传感器
+# Initialize camera and light sensor
 camera = Picamera2()
 camera.configure(camera.create_video_configuration(main={"size": (640, 480)}))
 camera.start()
-
-time.sleep(2)
+time.sleep(1)
 light_sensor = PiicoDev_VEML6030()
 
+# === Functions ===
 
-# 音频播放函数
+# Audio playback function
+# This function plays audio files on the specified card
 def play_audio(file, card, device=AUDIO_DEVICE):
     subprocess.run(["aplay", "-D", f"plughw:{card},{device}", file])
 
-# 播放双声道音频
+# Dual audio playback function
+# This function plays the same audio file on both indoor and outdoor speakers
+# It uses threading to play the audio simultaneously
 def play_dual_audio(file):
     t1 = threading.Thread(target=play_audio, args=(file, INDOOR_SPEAKER_CARD))
     t2 = threading.Thread(target=play_audio, args=(file, OUTDOOR_SPEAKER_CARD))
@@ -55,9 +58,9 @@ def play_dual_audio(file):
     t1.join()
     t2.join()
 
-# Flask 视频流部分
+# Flask app for video streaming
+# This function sets up a Flask app to stream video from the camera
 app = Flask(__name__)
-
 def generate_frames():
     while True:
         frame = camera.capture_array()
@@ -75,58 +78,18 @@ def video_feed():
 def run_flask():
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
-# 拍照函数
+# Take photo function
+# This function captures a photo using the camera and saves it with a timestamp
 def take_photo():
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"Record/photo_{ts}.jpg"
     camera.capture_file(filename)
-    print(f"📸 拍照成功：{filename}")
+    print(f"Photo taken successfully:{filename}")
+    return filename
 
-# 视频录制函数
-# def record_video():
-#     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-#     video_file = f"Record/video_{ts}.h264"
-#     audio_file = f"Record/audio_{ts}.wav"
-#     output_file = f"Record/output_{ts}.mp4"
-
-#     try:
-#         camera.stop()
-#         time.sleep(0.5)
-#     except Exception as e:
-#         print("相机停止时出错（可忽略）:", e)
-
-#     video_config = camera.create_video_configuration(main={"size": (1280, 720)})
-#     camera.configure(video_config)
-#     camera.start()
-#     time.sleep(1)
-
-#     # 录音
-#     arecord_cmd = [
-#         "arecord", "-D", f"hw:{MICROPHONE_CARD},0",
-#         "-f", "S16_LE", "-r", "44100", "-c", "1",
-#         "-t", "wav", "-d", "10", audio_file
-#     ]
-#     arecord_proc = subprocess.Popen(arecord_cmd)
-
-#     # 录像
-#     camera.start_recording(output=video_file, encoder=encoders.H264Encoder(bitrate=4000000))
-#     time.sleep(10)
-#     camera.stop_recording()
-#     camera.stop()
-#     arecord_proc.wait()
-
-#     # 合成音视频
-#     subprocess.run(["ffmpeg", "-y", "-i", video_file, "-i", audio_file, "-c:v", "copy", "-c:a", "aac", output_file])
-#     os.remove(video_file)
-#     os.remove(audio_file)
-#     print(f"🎥 视频合成完成：{output_file}")
-
-#     # 恢复为拍照模式
-#     camera.configure(camera.create_still_configuration(main={"size": (1280, 720)}))
-#     camera.start()
-#     time.sleep(1)
-
-
+# Record video function
+# This function records a video with audio for 10 seconds and saves it with a timestamp
+# It uses the arecord command to capture audio and ffmpeg to combine video and audio
 def record_video():
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     video_file = f"Record/video_{ts}.h264"
@@ -134,37 +97,22 @@ def record_video():
     output_file = f"Record/output_{ts}.mp4"
 
     try:
-        print("🎥 开始录像...")
-
-        # 先停止现有模式（必要！）
-        camera.stop()
-        time.sleep(0.5)  # 稍微等待防止冲突
-
-        # 切换到高清录像模式
-        video_config = camera.create_video_configuration(main={"size": (1280, 720)})
-        camera.configure(video_config)
-        camera.start()
-        time.sleep(1)
-
-        # 启动录音
+        print("Start Recording Video...")
+        # Do not switch configuration, use the current stream for direct recording
         arecord_cmd = [
             "arecord", "-D", f"hw:{MICROPHONE_CARD},0",
             "-f", "S16_LE", "-r", "44100", "-c", "1",
             "-t", "wav", "-d", "10", audio_file
         ]
         arecord_proc = subprocess.Popen(arecord_cmd)
-
-        # 开始录像
+        # Start recording
         camera.start_recording(
             encoder=encoders.H264Encoder(bitrate=4000000),
             output=video_file
         )
         time.sleep(10)
         camera.stop_recording()
-
         arecord_proc.wait()
-
-        # 合成音视频
         subprocess.run([
             "ffmpeg", "-y",
             "-i", video_file,
@@ -172,163 +120,278 @@ def record_video():
             "-c:v", "copy", "-c:a", "aac",
             output_file
         ])
-
         os.remove(video_file)
         os.remove(audio_file)
-        print(f"✅ 视频合成完成：{output_file}")
+        print(f"Video combination complete:{output_file}")
 
-        # 切回低清直播模式
-        camera.stop()
-        time.sleep(0.5)
-        live_config = camera.create_video_configuration(main={"size": (640, 480)})
-        camera.configure(live_config)
+        # Reconfigure to live streaming mode
+        camera.configure(camera.create_video_configuration(main={"size": (640, 480)}))
         camera.start()
+    except Exception as e:
+        print(f"Error: Error during recording: {e}")
+    return output_file
+
+# The background upload function
+# This function uploads the recorded video to a cloud service
+# It uses the upload_video function from the cloudinary_api module
+def upload_video_background(video_file, event_id):
+    try:
+        print(f"Starting asynchronous upload:{video_file}")
+        result = upload_video(video_file)
+        if result["status"] != "success":
+            print(f"Upload failed: {result['message']}")
+            delete_file_safely(video_file)
+            return
+
+        media_id = insert_media_record(
+            event_ref=event_id,
+            media_type="video",
+            url=result["url"]
+        )
+
+        if not media_id:
+            print("Failed to insert media record.")
+            delete_file_safely(video_file)
+            return
+
+        print(f"🎉 Video uploaded successfully: {result['url']}")
+        delete_file_safely(video_file)
 
     except Exception as e:
-        print(f"❌ 录像出错: {e}")
+        print(f"Error: Asynchronous upload thread crashed: {e}")
 
-
-
-# 距离测量函数
-def get_distance_cm():
+# Distance measurement function
+# This function measures the distance using an ultrasonic sensor
+# It sends a trigger signal and waits for the echo signal to calculate the distance
+def get_distance_cm(timeout=0.02):
     GPIO.output(TRIG, False)
     time.sleep(0.05)
     GPIO.output(TRIG, True)
     time.sleep(0.00001)
     GPIO.output(TRIG, False)
 
+    start_time = time.time()
     while GPIO.input(ECHO) == 0:
-        pulse_start = time.time()
+        if time.time() - start_time > timeout:
+            print("Timeout: ECHO waiting for rising edge failed")
+            return -1
+
+    pulse_start = time.time()
+
     while GPIO.input(ECHO) == 1:
-        pulse_end = time.time()
+        if time.time() - pulse_start > timeout:
+            print("Timeout: ECHO waiting for falling edge failed")
+            return -1
 
+    pulse_end = time.time()
     pulse_duration = pulse_end - pulse_start
-    distance_cm = round(pulse_duration * 17150, 2)
-    return distance_cm
+    return round(pulse_duration * 17150, 2)
 
-
+# Light and distance monitoring function
+# This function continuously monitors the ambient light and distance
+# It uses the light sensor to read the ambient brightness and the ultrasonic sensor to measure distance
 def light_and_distance_monitor():
-    # 主监测循环
+    # Main monitoring loop
     try:
-        print("✅ 正在监测环境亮度与前方距离...")
+        print("Monitoring ambient brightness and forward distance....")
         while True:
-            lux = light_sensor.read()
+            try:
+                lux = light_sensor.read()
+            except Exception as e:
+                print(f"Light reading failed:  {e}")
+                lux = 1000  # Assume bright light
             distance = get_distance_cm()
+            if distance == -1:
+                continue  
 
-            print(f"光照: {lux:.2f} lux | 距离: {distance:.2f} cm")
+            print(f"Light: {lux:.2f} lux | Distance: {distance:.2f} cm")
 
-            if lux < 50 and distance < 100:
+            if lux < 50 and distance < 62 :
                 GPIO.output(RELAY_PIN, GPIO.LOW)  # 开灯
-                print("💡 天黑 + 有人靠近 → 开灯")
+                print("Dark + someone approaching → turn on the light")
             else:
                 GPIO.output(RELAY_PIN, GPIO.HIGH)  # 关灯
-                print("🌞 光线充足或无人靠近 → 灭灯")
+                print("Enough light or no one approaching → turn off the light")
 
             time.sleep(1)
 
     except KeyboardInterrupt:
-        print("程序终止")
+        print("Program terminated")
 
+# Cleanup function to delete files safely
+# This function checks if a file exists and deletes it
+# It handles exceptions and prints appropriate messages
+def delete_file_safely(path):
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+            print(f"[CLEANUP] Deleted file: {path}")
+        else:
+            print(f"[CLEANUP] File not found: {path}")
+    except Exception as e:
+        print(f"[CLEANUP ERROR] Could not delete file: {path} -> {e}")
 
+# Camera capture function
+# This function handles the button press events and captures photos/videos
+# It uses threading to manage the button press logic and video recording
 def camera_capture():
     try:
-        print("🎯 按钮测试程序已启动")
-
+        print("Button test program started")
         press_times = []
         first_press_time = None
         last_second_press_time = None
         waiting_for_third_press = False
+        event_id = None
+        last_button_state = GPIO.LOW  
 
         while True:
             now = time.time()
+            current_state = GPIO.input(BUTTON_PIN)
 
-            # 自动重置机制：超过10秒未完成三连击
+            # Automatic reset logic
             if waiting_for_third_press and last_second_press_time and (now - last_second_press_time > 20):
-                print("⏱️ 超过20秒未完成三连击，自动重置状态")
+                print("More than 20 seconds without completing triple press, auto reset")
                 waiting_for_third_press = False
                 press_times.clear()
                 first_press_time = None
                 last_second_press_time = None
-
-            # 自动重置机制：首次按下后20秒未再按
+                event_id = None
+            # Automatic reset logic for first press
             if first_press_time and not waiting_for_third_press and (now - first_press_time > 20):
-                print("⏱️ 超过20秒未按第二次 → 自动重置为初始状态")
+                print("More than 20 seconds without the second press → auto reset to initial state")
                 first_press_time = None
                 press_times.clear()
+                event_id = None
 
-            # 检测按钮按下
-            if GPIO.input(BUTTON_PIN) == GPIO.HIGH:
+            #  State change detection: only from LOW -> HIGH triggers press logic
+            if current_state == GPIO.HIGH and last_button_state == GPIO.LOW:
                 press_times.append(now)
                 press_times = [t for t in press_times if now - t <= 5]
-                print("🔘 当前按键时间戳：", [round(t % 60, 2) for t in press_times])
+                print("Current button press timestamps:", [round(t % 60, 2) for t in press_times])
 
-                # 三连击录像
-                # 三连击录像
+                # Triple press video recording
                 if waiting_for_third_press and len(press_times) >= 3 and now - press_times[-3] < 5:
-                    print("🎬 检测到 5 秒内快速按下 3 次 → 开始录制")
+                    print("Detected 3 presses within 5 seconds → start recording")
                     play_audio("Audios/countdown.wav", card=OUTDOOR_SPEAKER_CARD)
                     play_audio("Audios/bi_tone.wav", card=OUTDOOR_SPEAKER_CARD)
-                    record_thread = threading.Thread(target=record_video)
-                    record_thread.start()
-                    record_thread.join() 
-            
+
+                    if not event_id:
+                        print("Error: no event ID, cannot record/upload.")
+                        continue
+
+                    video_file = record_video()
+                    upload_thread = threading.Thread(target=upload_video_background, args=(video_file, event_id))
+                    upload_thread.daemon = True
+                    upload_thread.start()
+
                     play_audio("Audios/bi_tone.wav", card=OUTDOOR_SPEAKER_CARD)
                     play_audio("Audios/videofinish.wav", card=OUTDOOR_SPEAKER_CARD)
-                    # Ryan, 这里按钮了，储存了一个10s视频，这里可以连API
+
                     press_times.clear()
                     waiting_for_third_press = False
                     first_press_time = None
                     last_second_press_time = None
                     time.sleep(1)
-                    continue
 
-
-                # 第一次按下
-                if not first_press_time:
+                # First press
+                # Pressing the button once
+                # If the first press is within 20 seconds, take a photo and play the doorbell sound
+                elif not first_press_time:
                     first_press_time = now
-                    print("🔔 第一次按下 → 拍照 + 门铃")
+                    print("First press → take photo + doorbell")
                     play_dual_audio("Audios/doorbell.wav")
-                    take_photo()
-                    # Ryan, 这里按钮了，储存了一个图片，这里可以连API
+                    image_file = take_photo()
 
-                # 第二次按下（20s 内）
+                    event_id = insert_event_record(
+                        device_id=doorbell_id,
+                        event_type="button_pressed",
+                        payload={"message": "Doorbell rings"}
+                    )
+                    # Retry logic for event record insertion
+                    if not event_id:
+                        print("Failed to insert event record after retries.")
+                        delete_file_safely(image_file)
+                        continue
+
+                    result = upload_image(image_file)
+                    if result["status"] != "success":
+                        print(f"Upload failed: {result['message']}")
+                        delete_file_safely(image_file)
+                        continue
+
+                    media_id = insert_media_record(
+                        event_ref=event_id,
+                        media_type="image",
+                        url=result["url"]
+                    )
+                    if not media_id:
+                        print("Failed to insert media record.")
+                        delete_file_safely(image_file)
+                        continue
+
+                # Second press
+                # If the second press is within 20 seconds, take another photo and play the doorbell sound
                 elif not waiting_for_third_press and now - first_press_time < 20:
                     last_second_press_time = now
                     waiting_for_third_press = True
-                    print("📢 20 秒内再次按下 → 再拍照 + 门铃 + 提示音")
+                    print("Press again within 20 seconds → another photo + doorbell + prompt sound")
                     play_dual_audio("Audios/doorbell.wav")
-                    take_photo()
+                    image_file = take_photo()
                     play_audio("Audios/press3times.wav", card=OUTDOOR_SPEAKER_CARD)
-                    # Ryan, 这里按钮了，储存了一个图片，这里可以连API
 
-                time.sleep(1)
+                    result = upload_image(image_file)
+                    if result["status"] != "success":
+                        print(f"Upload failed: {result['message']}")
+                        delete_file_safely(image_file)
+                        continue
 
+                    media_id = insert_media_record(
+                        event_ref=event_id,
+                        media_type="image",
+                        url=result["url"]
+                    )
+                    if not media_id:
+                        print("Failed to insert media record.")
+                        delete_file_safely(image_file)
+                        continue
+
+                time.sleep(0.2)  # Debounce
+
+            last_button_state = current_state
             time.sleep(0.1)
 
     except KeyboardInterrupt:
-        print("🛑 手动终止")
+        print("Manual termination")
 
+# === Main Program ===
 
-
-
-# === 主程序 ===
 try:
-    # 启动线程
+    # Start threads
+    # Start the light and distance monitoring, camera capture, and Flask app in separate threads
+    # The light and distance monitoring thread handles the light sensor and distance measurement
+    # The camera capture thread handles the button press events and captures photos/videos
+    # The Flask app thread handles the video streaming
     t1 = threading.Thread(target=light_and_distance_monitor)
     t2 = threading.Thread(target=camera_capture)
     t3 = threading.Thread(target=run_flask)
 
+    # Set threads as daemon threads
+    t1.daemon = True
+    t2.daemon = True
+    t3.daemon = True
+    # Start the threads
     t1.start()
     t2.start()
     t3.start()
 
-    # 等待线程
+    # The main thread waits for the camera capture thread to finish
     t1.join()
     t2.join()
     t3.join()
 
+# Wait for the threads to finish
 except KeyboardInterrupt:
-    print("🛑 用户中断程序")
+    print("User interrupts program")
 finally:
     GPIO.cleanup()
-    print("✅ 清理完毕")
+    print("Cleanup completed")

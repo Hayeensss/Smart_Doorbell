@@ -6,7 +6,7 @@ from datetime import datetime
 from picamera2 import Picamera2, encoders
 import threading
 
-# === 配置区域 ===
+# === Config ===
 BUTTON_PIN = 10
 MICROPHONE_CARD = 2
 OUTDOOR_SPEAKER_CARD = 4
@@ -14,20 +14,20 @@ INDOOR_SPEAKER_CARD = 3
 
 AUDIO_DEVICE = 0
 
-# 初始化 GPIO
+# initialize GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-# 初始化相机
+# initialize camera
 camera = Picamera2()
 camera.start()
 time.sleep(2)
 
-# 音频播放函数
+# play audio function
 def play_audio(file, card, device=AUDIO_DEVICE):
     subprocess.run(["aplay", "-D", f"plughw:{card},{device}", file])
 
-# 播放双声道音频
+# play dual audio function
 def play_dual_audio(file):
     t1 = threading.Thread(target=play_audio, args=(file, INDOOR_SPEAKER_CARD))
     t2 = threading.Thread(target=play_audio, args=(file, OUTDOOR_SPEAKER_CARD))
@@ -36,14 +36,14 @@ def play_dual_audio(file):
     t1.join()
     t2.join()
 
-# 拍照函数
+# take photo function
 def take_photo():
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"Record/photo_{ts}.jpg"
     camera.capture_file(filename)
-    print(f"📸 拍照成功：{filename}")
+    print(f"Take{filename}")
 
-# 视频录制函数
+# Video recording function
 def record_video():
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     video_file = f"Record/video_{ts}.h264"
@@ -54,14 +54,14 @@ def record_video():
         camera.stop()
         time.sleep(0.5)
     except Exception as e:
-        print("相机停止时出错（可忽略）:", e)
+        print("Fault when terminating:", e)
 
     video_config = camera.create_video_configuration(main={"size": (1280, 720)})
     camera.configure(video_config)
     camera.start()
     time.sleep(1)
 
-    # 录音
+    # audio recording
     arecord_cmd = [
         "arecord", "-D", f"hw:{MICROPHONE_CARD},0",
         "-f", "S16_LE", "-r", "44100", "-c", "1",
@@ -69,27 +69,27 @@ def record_video():
     ]
     arecord_proc = subprocess.Popen(arecord_cmd)
 
-    # 录像
+    # video recording
     camera.start_recording(output=video_file, encoder=encoders.H264Encoder(bitrate=4000000))
     time.sleep(10)
     camera.stop_recording()
     camera.stop()
     arecord_proc.wait()
 
-    # 合成音视频
+    # merge video and audio
     subprocess.run(["ffmpeg", "-y", "-i", video_file, "-i", audio_file, "-c:v", "copy", "-c:a", "aac", output_file])
     os.remove(video_file)
     os.remove(audio_file)
-    print(f"🎥 视频合成完成：{output_file}")
+    print(f"Finish video merging: {output_file}")
 
-    # 恢复为拍照模式
+    # Restart camera
     camera.configure(camera.create_still_configuration(main={"size": (1280, 720)}))
     camera.start()
     time.sleep(1)
 
-# 主程序逻辑
+# Main program
 try:
-    print("🎯 按钮测试程序已启动")
+    print("System ready. Press the button to take a photo or record a video.")
 
     press_times = []
     first_press_time = None
@@ -99,29 +99,29 @@ try:
     while True:
         now = time.time()
 
-        # 自动重置机制：超过10秒未完成三连击
+        # Automatic reset mechanism: if waiting for the third press and 20 seconds have passed since the last second press
         if waiting_for_third_press and last_second_press_time and (now - last_second_press_time > 20):
-            print("⏱️ 超过20秒未完成三连击，自动重置状态")
+            print("Over 20 seconds since last second press → Reset to initial state")
             waiting_for_third_press = False
             press_times.clear()
             first_press_time = None
             last_second_press_time = None
 
-        # 自动重置机制：首次按下后20秒未再按
+        # Automatic reset mechanism: if first press time is set and 20 seconds have passed since the first press
         if first_press_time and not waiting_for_third_press and (now - first_press_time > 20):
-            print("⏱️ 超过20秒未按第二次 → 自动重置为初始状态")
+            print("Over 20 seconds since first press → Reset to initial state")
             first_press_time = None
             press_times.clear()
 
-        # 检测按钮按下
+        # Detect button press
         if GPIO.input(BUTTON_PIN) == GPIO.HIGH:
             press_times.append(now)
             press_times = [t for t in press_times if now - t <= 5]
-            print("🔘 当前按键时间戳：", [round(t % 60, 2) for t in press_times])
+            print("Current time stamp", [round(t % 60, 2) for t in press_times])
 
-            # 三连击录像
+            # Three quick presses within 5 seconds
             if waiting_for_third_press and len(press_times) >= 3 and now - press_times[-3] < 5:
-                print("🎬 检测到 5 秒内快速按下 3 次 → 开始录制")
+                print("Detected 3 quick presses → Start video recording")
                 play_audio("Audios/countdown.wav", card=OUTDOOR_SPEAKER_CARD)
                 play_audio("Audios/bi_tone.wav", card=OUTDOOR_SPEAKER_CARD)
                 record_video()
@@ -134,18 +134,18 @@ try:
                 time.sleep(1)
                 continue
 
-            # 第一次按下
+            # First press
             if not first_press_time:
                 first_press_time = now
-                print("🔔 第一次按下 → 拍照 + 门铃")
+                print("First press detected → Start countdown")
                 play_dual_audio("Audios/doorbell.wav")
                 take_photo()
 
-            # 第二次按下（20s 内）
+            # Second press in 20 seconds
             elif not waiting_for_third_press and now - first_press_time < 20:
                 last_second_press_time = now
                 waiting_for_third_press = True
-                print("📢 20 秒内再次按下 → 再拍照 + 门铃 + 提示音")
+                print("20 seconds countdown started → Waiting for third press")
                 play_dual_audio("Audios/doorbell.wav")
                 take_photo()
                 play_audio("Audios/press3times.wav", card=OUTDOOR_SPEAKER_CARD)
@@ -155,7 +155,7 @@ try:
         time.sleep(0.1)
 
 except KeyboardInterrupt:
-    print("🛑 手动终止")
+    print("Manually terminated the program...")
 
 finally:
     GPIO.cleanup()

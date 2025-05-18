@@ -3,32 +3,32 @@ import RPi.GPIO as GPIO
 from picamera2 import Picamera2
 from datetime import datetime
 
-# 设置 GPIO 模式为 BCM
+# Setup GPIO mode
 GPIO.setmode(GPIO.BCM)
 
-# 按钮引脚定义
+# define GPIO pins
 BUTTON_PIN = 10
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-# 初始化摄像头
+# initialize the camera
 camera = Picamera2()
 camera.start()
-time.sleep(2)  # 等待摄像头准备
+time.sleep(2)  #wait for the camera to warm up
 
-print("系统就绪：请按下按钮拍照。")
+print("System ready. Press the button to take a photo.")
 
 try:
     while True:
         if GPIO.input(BUTTON_PIN) == GPIO.HIGH:
-            # 获取当前时间戳作为文件名
+            # Get the current timestamp for the filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"photo_{timestamp}.jpg"
-            print(f"拍照中... 文件名: {filename}")
+            print(f"Photo taking... File name: {filename}")
             camera.capture_file(filename)
-            print(f"照片已保存为 {filename}")
-            time.sleep(1)  # 防止按钮连发
+            print(f"Photo is saved as {filename}")
+            time.sleep(1)  # Debounce delay
 except KeyboardInterrupt:
-    print("程序终止。")
+    print("Terminating the program...")
 finally:
     camera.stop()
     GPIO.cleanup()
