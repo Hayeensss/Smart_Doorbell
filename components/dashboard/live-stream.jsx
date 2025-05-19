@@ -28,11 +28,6 @@ export default function LiveStream() {
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-white text-sm">Camera</div>
-            <div className="text-white text-sm">12:34 PM</div>
-          </div>
-
           <Slider
             defaultValue={[75]}
             max={100}
