@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import DashboardHeader from "@/components/dashboard/dashboard-header";
+import LiveViewSection from "@/components/dashboard/live-view-section";
 import QuickActions from "@/components/dashboard/quick-actions";
 import { Separator } from "@/components/ui/separator";
-import LiveViewSection from "@/components/dashboard/live-view-section";
+import { useEffect, useState } from "react";
 
 export default function InteractiveDashboardArea({ initialModeId }) {
   const [activeModeId, setActiveModeId] = useState(initialModeId);
@@ -17,8 +17,11 @@ export default function InteractiveDashboardArea({ initialModeId }) {
     <div className="space-y-6">
       <DashboardHeader activeModeId={activeModeId} />
       <Separator />
-      <QuickActions activeModeId={activeModeId} setActiveModeId={setActiveModeId} />
+      <QuickActions
+        activeModeId={activeModeId}
+        setActiveModeId={setActiveModeId}
+      />
       <LiveViewSection />
     </div>
   );
-} 
+}
