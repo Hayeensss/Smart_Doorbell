@@ -1,5 +1,10 @@
 const { db } = require("@/db");
-const { events: eventsTable, devices: devicesTable, userPreferences: userPreferencesTable, media: mediaTable } = require("./schema");
+const {
+  events: eventsTable,
+  devices: devicesTable,
+  userPreferences: userPreferencesTable,
+  media: mediaTable,
+} = require("./schema");
 const { eq, desc, and, or, gte, lte, sql, inArray } = require("drizzle-orm");
 const { subDays, endOfDay, startOfDay } = require("date-fns");
 
@@ -10,13 +15,19 @@ function buildEventWhereClause(filters = {}) {
     if (!isNaN(parsedDate.getTime())) {
       const targetDate = parsedDate;
       switch (filters.timeRange) {
-        case '7d':
-          dateFilterConditions = gte(eventsTable.occurredAt, subDays(startOfDay(targetDate), 6));
+        case "7d":
+          dateFilterConditions = gte(
+            eventsTable.occurredAt,
+            subDays(startOfDay(targetDate), 6)
+          );
           break;
-        case '30d':
-          dateFilterConditions = gte(eventsTable.occurredAt, subDays(startOfDay(targetDate), 29));
+        case "30d":
+          dateFilterConditions = gte(
+            eventsTable.occurredAt,
+            subDays(startOfDay(targetDate), 29)
+          );
           break;
-        case '24h':
+        case "24h":
         default:
           dateFilterConditions = and(
             gte(eventsTable.occurredAt, startOfDay(targetDate)),
@@ -25,7 +36,9 @@ function buildEventWhereClause(filters = {}) {
           break;
       }
     } else {
-      console.warn(`Invalid date string received in filters: "${filters.date}". Date filter will not be applied.`);
+      console.warn(
+        `Invalid date string received in filters: "${filters.date}". Date filter will not be applied.`
+      );
     }
   }
 
@@ -35,18 +48,26 @@ function buildEventWhereClause(filters = {}) {
       .filter(([, isActive]) => isActive)
       .map(([type]) => type);
     if (activeEventTypes.length > 0) {
-      eventTypeFilterConditions = or(...activeEventTypes.map(type => eq(eventsTable.eventType, type)));
+      eventTypeFilterConditions = or(
+        ...activeEventTypes.map((type) => eq(eventsTable.eventType, type))
+      );
     }
   }
 
   const queryConditions = [];
   if (dateFilterConditions) queryConditions.push(dateFilterConditions);
-  if (eventTypeFilterConditions) queryConditions.push(eventTypeFilterConditions);
-  
+  if (eventTypeFilterConditions)
+    queryConditions.push(eventTypeFilterConditions);
+
   return queryConditions.length > 0 ? and(...queryConditions) : undefined;
 }
 
-async function getRecentEventsWithDeviceNames(userId, limitInput = 10, offsetInput = 0, filters = {}) {
+async function getRecentEventsWithDeviceNames(
+  userId,
+  limitInput = 10,
+  offsetInput = 0,
+  filters = {}
+) {
   try {
     // Sanitize limit
     let limit = 10; // Default limit
@@ -55,7 +76,9 @@ async function getRecentEventsWithDeviceNames(userId, limitInput = 10, offsetInp
       if (!isNaN(parsedLimit) && parsedLimit > 0) {
         limit = parsedLimit;
       } else {
-        console.warn(`Invalid limit value received: "${limitInput}". Defaulting to ${limit}.`);
+        console.warn(
+          `Invalid limit value received: "${limitInput}". Defaulting to ${limit}.`
+        );
       }
     }
 
@@ -66,7 +89,9 @@ async function getRecentEventsWithDeviceNames(userId, limitInput = 10, offsetInp
       if (!isNaN(parsedOffset) && parsedOffset >= 0) {
         offset = parsedOffset;
       } else {
-        console.warn(`Invalid offset value received: "${offsetInput}". Defaulting to ${offset}.`);
+        console.warn(
+          `Invalid offset value received: "${offsetInput}". Defaulting to ${offset}.`
+        );
       }
     }
 
@@ -93,51 +118,55 @@ async function getRecentEventsWithDeviceNames(userId, limitInput = 10, offsetInp
       .orderBy(desc(eventsTable.occurredAt))
       .limit(limit)
       .offset(offset);
-      
+
     // Get all media for these events in a separate query
-    const eventIds = rawEvents.map(event => event.eventId);
-    
-    const mediaItems = eventIds.length > 0 
-      ? await db
-          .select({
-            eventRef: mediaTable.eventRef,
-            mediaId: mediaTable.mediaId,
-            mediaType: mediaTable.mediaType,
-            url: mediaTable.url,
-          })
-          .from(mediaTable)
-          .where(inArray(mediaTable.eventRef, eventIds))
-      : [];
-    
+    const eventIds = rawEvents.map((event) => event.eventId);
+
+    const mediaItems =
+      eventIds.length > 0
+        ? await db
+            .select({
+              eventRef: mediaTable.eventRef,
+              mediaId: mediaTable.mediaId,
+              mediaType: mediaTable.mediaType,
+              url: mediaTable.url,
+            })
+            .from(mediaTable)
+            .where(inArray(mediaTable.eventRef, eventIds))
+        : [];
+
     // Group media by event ID
     const mediaByEvent = {};
-    mediaItems.forEach(item => {
+    mediaItems.forEach((item) => {
       if (!mediaByEvent[item.eventRef]) {
         mediaByEvent[item.eventRef] = {
           images: [],
           videos: [],
         };
       }
-      
-      if (item.mediaType === 'image') {
+
+      if (item.mediaType === "image") {
         mediaByEvent[item.eventRef].images.push({
           id: item.mediaId,
           url: item.url,
         });
-      } else if (item.mediaType === 'video') {
+      } else if (item.mediaType === "video") {
         mediaByEvent[item.eventRef].videos.push({
           id: item.mediaId,
           url: item.url,
         });
       }
     });
-    
+
     // Format events with their media
-    const formattedEvents = rawEvents.map(event => {
-      const eventMedia = mediaByEvent[event.eventId] || { images: [], videos: [] };
+    const formattedEvents = rawEvents.map((event) => {
+      const eventMedia = mediaByEvent[event.eventId] || {
+        images: [],
+        videos: [],
+      };
       const hasImages = eventMedia.images.length > 0;
       const hasVideos = eventMedia.videos.length > 0;
-      
+
       // Choose thumbnail: prefer image over video
       let thumbnail = null;
       if (hasImages) {
@@ -145,7 +174,7 @@ async function getRecentEventsWithDeviceNames(userId, limitInput = 10, offsetInp
       } else if (hasVideos) {
         thumbnail = eventMedia.videos[0].url;
       }
-      
+
       return {
         id: event.eventId,
         deviceId: event.deviceId,
@@ -157,14 +186,14 @@ async function getRecentEventsWithDeviceNames(userId, limitInput = 10, offsetInp
         media: {
           images: eventMedia.images,
           videos: eventMedia.videos,
-        }
+        },
       };
     });
-    
+
     return formattedEvents;
-  } catch (error) { 
+  } catch (error) {
     console.error("Error in getRecentEventsWithDeviceNames:", error);
-    throw new Error(`Database query failed: ${error.message}`); 
+    throw new Error(`Database query failed: ${error.message}`);
   }
 }
 
@@ -176,7 +205,7 @@ async function getEventsCount(filters = {}) {
       .select({ count: sql`count(*)::int` })
       .from(eventsTable)
       .where(finalCondition);
-      
+
     return result[0]?.count ?? 0;
   } catch (error) {
     console.error("Error in getEventsCount:", error);
@@ -190,8 +219,8 @@ async function getDistinctEventTypes() {
       .selectDistinct({ eventType: eventsTable.eventType })
       .from(eventsTable)
       .orderBy(eventsTable.eventType);
-      
-    return result.map(item => item.eventType);
+
+    return result.map((item) => item.eventType);
   } catch (error) {
     console.error("Error in getDistinctEventTypes:", error);
     throw new Error(`Database distinct query failed: ${error.message}`);
@@ -199,22 +228,33 @@ async function getDistinctEventTypes() {
 }
 
 async function upsertUserPreferences(userId, preferences) {
-  const { notificationsEnabled, soundsEnabled } = preferences;
+  const { notificationsEnabled, soundsEnabled, defaultMode } = preferences;
 
   try {
-    const result = await db.insert(userPreferencesTable)
-      .values({
-        userId,
-        notificationsEnabled,
-        soundsEnabled,
-      })
+    const values = {
+      userId,
+      notificationsEnabled,
+      soundsEnabled,
+    };
+
+    // Only add defaultMode if provided
+    if (defaultMode) {
+      values.defaultMode = defaultMode;
+    }
+
+    const result = await db
+      .insert(userPreferencesTable)
+      .values(values)
       .onConflictDoUpdate({
         target: userPreferencesTable.userId,
         set: {
-          notificationsEnabled,
-          soundsEnabled,
+          ...(notificationsEnabled !== undefined
+            ? { notificationsEnabled }
+            : {}),
+          ...(soundsEnabled !== undefined ? { soundsEnabled } : {}),
+          ...(defaultMode ? { defaultMode } : {}),
           updatedAt: sql`NOW()`,
-        }
+        },
       })
       .returning();
 
@@ -230,11 +270,12 @@ async function upsertUserPreferences(userId, preferences) {
 
 async function getUserPreferences(userId) {
   try {
-    const result = await db.select() 
+    const result = await db
+      .select()
       .from(userPreferencesTable)
       .where(eq(userPreferencesTable.userId, userId))
       .limit(1);
-    
+
     return result[0] || null;
   } catch (error) {
     console.error("Error in getUserPreferences:", error);

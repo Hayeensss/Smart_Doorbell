@@ -12,4 +12,4 @@ export default function DashboardHeader({ activeModeId }) {
       <ModeSelector activeModeId={activeModeId} />
     </div>
   );
-} 
+}
