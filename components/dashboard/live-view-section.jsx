@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 export default function LiveViewSection() {
   return (
     <div className="space-y-6">
-      <div>
+      <div className="mb-4">
         <h1 className="text-3xl font-bold tracking-tight">Live View</h1>
         <p className="text-muted-foreground">
           Watch real-time video from your devices
@@ -15,7 +15,10 @@ export default function LiveViewSection() {
       <Separator />
 
       <div className="flex justify-center items-center">
-        <div className="w-full max-w-4xl">
+        <div
+          className="w-full h-full object-cover"
+          style={{ maxWidth: "640px", height: "400px" }}
+        >
           <Card>
             <CardContent className="p-0 overflow-hidden rounded-lg">
               <LiveStream />
@@ -25,4 +28,4 @@ export default function LiveViewSection() {
       </div>
     </div>
   );
-} 
+}

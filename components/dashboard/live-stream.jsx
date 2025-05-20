@@ -17,6 +17,8 @@ export default function LiveStream() {
           title="Live stream"
           className="w-full h-full object-cover"
           allowFullScreen
+          width="1280"
+          height="720"
         />
       </div>
 

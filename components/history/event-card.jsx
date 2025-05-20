@@ -1,19 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Bell, Radio, Play, Download, ZoomIn } from "lucide-react";
-import { format } from "date-fns";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MediaGallery } from "@/components/ui/media-gallery";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { format } from "date-fns";
+import { Bell, Camera, Download, Play, Radio } from "lucide-react";
+import { useRef, useState } from "react";
 
 const getEventIcon = (type) => {
   switch (type) {
@@ -41,6 +36,7 @@ const getEventBadge = (eventType) => {
 
 export default function EventCard({ event, isExpanded, onToggleExpand }) {
   if (!event) return null;
+  console.log(event);
 
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
@@ -59,7 +55,8 @@ export default function EventCard({ event, isExpanded, onToggleExpand }) {
   };
 
   // Check if we have media
-  const hasMedia = event.media && 
+  const hasMedia =
+    event.media &&
     (event.media.images.length > 0 || event.media.videos.length > 0);
 
   return (
@@ -73,7 +70,7 @@ export default function EventCard({ event, isExpanded, onToggleExpand }) {
                 <div className="w-full h-full bg-muted">
                   <img
                     src={event.thumbnail}
-                    alt={`Event from ${event.deviceName || 'Unknown Device'}`}
+                    alt={`Event from ${event.deviceName || "Unknown Device"}`}
                     className="w-full h-full object-cover"
                   />
                   {event.hasRecording && (
@@ -87,19 +84,15 @@ export default function EventCard({ event, isExpanded, onToggleExpand }) {
                 <div className="w-full h-full bg-muted">
                   <img
                     src={event.thumbnail}
-                    alt={`Event from ${event.deviceName || 'Unknown Device'}`}
+                    alt={`Event from ${event.deviceName || "Unknown Device"}`}
                     className="w-full h-full object-cover"
                   />
                   {event.hasRecording && (
-                    <div 
+                    <div
                       className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
                       onClick={() => handlePlayVideo()}
                     >
-                      <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        className="gap-1"
-                      >
+                      <Button variant="secondary" size="sm" className="gap-1">
                         <Play className="h-4 w-4" />
                         Play
                       </Button>
@@ -115,7 +108,9 @@ export default function EventCard({ event, isExpanded, onToggleExpand }) {
               <div>
                 <div className="flex items-center gap-2">
                   {getEventIcon(event.deviceType)}
-                  <span className="font-medium">{event.deviceName || 'Unknown Device'}</span>
+                  <span className="font-medium">
+                    {event.deviceName || "Unknown Device"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   {getEventBadge(event.eventType)}
@@ -127,7 +122,11 @@ export default function EventCard({ event, isExpanded, onToggleExpand }) {
 
               <div className="flex gap-2">
                 {event.hasRecording && (
-                  <Button variant="ghost" size="icon" title="Download recording">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Download recording"
+                  >
                     <Download className="h-4 w-4" />
                   </Button>
                 )}
@@ -147,7 +146,7 @@ export default function EventCard({ event, isExpanded, onToggleExpand }) {
                 <div className="grid grid-cols-2 gap-2 text-sm mb-4">
                   <div>
                     <div className="text-muted-foreground">Device</div>
-                    <div>{event.deviceName || 'Unknown Device'}</div>
+                    <div>{event.deviceName || "Unknown Device"}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Event Type</div>
@@ -155,7 +154,9 @@ export default function EventCard({ event, isExpanded, onToggleExpand }) {
                   </div>
                   <div>
                     <div className="text-muted-foreground">Date</div>
-                    <div>{format(new Date(event.timestamp), "MMM d, yyyy")}</div>
+                    <div>
+                      {format(new Date(event.timestamp), "MMM d, yyyy")}
+                    </div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Time</div>
@@ -166,8 +167,8 @@ export default function EventCard({ event, isExpanded, onToggleExpand }) {
                 {/* Display media gallery when expanded */}
                 {hasMedia && (
                   <div className="mt-4">
-                    <MediaGallery 
-                      media={event.media} 
+                    <MediaGallery
+                      media={event.media}
                       onSelectVideo={handlePlayVideo}
                     />
                   </div>
@@ -177,11 +178,15 @@ export default function EventCard({ event, isExpanded, onToggleExpand }) {
           </div>
 
           {/* Video Dialog */}
-          <Dialog open={isVideoDialogOpen} onOpenChange={handleVideoDialogClose}>
+          <Dialog
+            open={isVideoDialogOpen}
+            onOpenChange={handleVideoDialogClose}
+          >
             <DialogContent className="max-w-4xl">
               <DialogTitle>
                 <VisuallyHidden>
-                  Video Recording from {event.deviceName || 'Unknown Device'} at {format(new Date(event.timestamp), "MMM d, yyyy h:mm a")}
+                  Video Recording from {event.deviceName || "Unknown Device"} at{" "}
+                  {format(new Date(event.timestamp), "MMM d, yyyy h:mm a")}
                 </VisuallyHidden>
               </DialogTitle>
               {selectedVideo && (
@@ -202,4 +207,4 @@ export default function EventCard({ event, isExpanded, onToggleExpand }) {
       </CardContent>
     </Card>
   );
-} 
+}
