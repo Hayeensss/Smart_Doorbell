@@ -5,6 +5,7 @@ import HistoryData from "@/components/history/history-data";
 import HistorySkeleton from "@/components/history/history-skeleton";
 import { getDistinctEventTypes } from "@/db/db";
 import { parseFiltersFromParams } from "@/lib/history-service";
+import { currentUser } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,18 @@ export const metadata = {
 
 export default async function HistoryPage({ searchParams: incomingSearchParams }) {
   const searchParams = await incomingSearchParams;
+  const user = await currentUser();
+
+  if (!user || !user.id) {
+    // Handle case where user is not logged in or user.id is not available
+    // Depending on your app's logic, you might redirect, show an error, or return null
+    // For now, let's assume we might want to show a message or redirect.
+    // This part might need adjustment based on how you want to handle unauthorized access.
+    console.error("User not found or user ID is missing.");
+    // Potentially return a component indicating an error or redirect
+    return <div>Error: User not authenticated. Please sign in.</div>; 
+  }
+  const userId = user.id;
 
   const availableEventTypes = await getDistinctEventTypes();
 
@@ -40,6 +53,7 @@ export default async function HistoryPage({ searchParams: incomingSearchParams }
       <Separator />
       <Suspense fallback={<HistorySkeleton />}> 
         <HistoryData 
+          userId={userId}
           currentPage={validPage} 
           dbQueryFilters={dbQueryFilters} 
           uiInitializationFilters={uiInitializationFilters} 

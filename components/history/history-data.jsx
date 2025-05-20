@@ -1,9 +1,11 @@
 import HistoryView from "@/components/history/history-view";
 import { getRecentEventsWithDeviceNames, getEventsCount } from '@/db/db';
+import { Button } from "@/components/ui/button";
 
 const ITEMS_PER_PAGE = 10;
 
 export default async function HistoryData({ 
+  userId,
   currentPage, 
   dbQueryFilters, 
   uiInitializationFilters, 
@@ -12,7 +14,7 @@ export default async function HistoryData({
     const offset = (currentPage - 1) * ITEMS_PER_PAGE;
   
     const [events, totalCount] = await Promise.all([
-      getRecentEventsWithDeviceNames(ITEMS_PER_PAGE, offset, dbQueryFilters),
+      getRecentEventsWithDeviceNames(userId, ITEMS_PER_PAGE, offset, dbQueryFilters),
       getEventsCount(dbQueryFilters)
     ]);
   

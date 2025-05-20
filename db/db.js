@@ -6,21 +6,26 @@ const { subDays, endOfDay, startOfDay } = require("date-fns");
 function buildEventWhereClause(filters = {}) {
   let dateFilterConditions;
   if (filters.date && filters.timeRange) {
-    const targetDate = new Date(filters.date);
-    switch (filters.timeRange) {
-      case '7d':
-        dateFilterConditions = gte(eventsTable.occurredAt, subDays(startOfDay(targetDate), 6));
-        break;
-      case '30d':
-        dateFilterConditions = gte(eventsTable.occurredAt, subDays(startOfDay(targetDate), 29));
-        break;
-      case '24h':
-      default:
-        dateFilterConditions = and(
-          gte(eventsTable.occurredAt, startOfDay(targetDate)),
-          lte(eventsTable.occurredAt, endOfDay(targetDate))
-        );
-        break;
+    const parsedDate = new Date(filters.date);
+    if (!isNaN(parsedDate.getTime())) {
+      const targetDate = parsedDate;
+      switch (filters.timeRange) {
+        case '7d':
+          dateFilterConditions = gte(eventsTable.occurredAt, subDays(startOfDay(targetDate), 6));
+          break;
+        case '30d':
+          dateFilterConditions = gte(eventsTable.occurredAt, subDays(startOfDay(targetDate), 29));
+          break;
+        case '24h':
+        default:
+          dateFilterConditions = and(
+            gte(eventsTable.occurredAt, startOfDay(targetDate)),
+            lte(eventsTable.occurredAt, endOfDay(targetDate))
+          );
+          break;
+      }
+    } else {
+      console.warn(`Invalid date string received in filters: "${filters.date}". Date filter will not be applied.`);
     }
   }
 
@@ -41,9 +46,37 @@ function buildEventWhereClause(filters = {}) {
   return queryConditions.length > 0 ? and(...queryConditions) : undefined;
 }
 
-async function getRecentEventsWithDeviceNames(limit = 10, offset = 0, filters = {}) {
+async function getRecentEventsWithDeviceNames(userId, limitInput = 10, offsetInput = 0, filters = {}) {
   try {
-    const finalCondition = buildEventWhereClause(filters);
+    // Sanitize limit
+    let limit = 10; // Default limit
+    if (limitInput !== undefined && limitInput !== null) {
+      const parsedLimit = parseInt(String(limitInput), 10);
+      if (!isNaN(parsedLimit) && parsedLimit > 0) {
+        limit = parsedLimit;
+      } else {
+        console.warn(`Invalid limit value received: "${limitInput}". Defaulting to ${limit}.`);
+      }
+    }
+
+    // Sanitize offset
+    let offset = 0; // Default offset
+    if (offsetInput !== undefined && offsetInput !== null) {
+      const parsedOffset = parseInt(String(offsetInput), 10);
+      if (!isNaN(parsedOffset) && parsedOffset >= 0) {
+        offset = parsedOffset;
+      } else {
+        console.warn(`Invalid offset value received: "${offsetInput}". Defaulting to ${offset}.`);
+      }
+    }
+
+    const filterSpecificConditions = buildEventWhereClause(filters);
+    const ownerFilterCondition = eq(devicesTable.ownerId, userId);
+
+    const conditions = [ownerFilterCondition];
+    if (filterSpecificConditions) {
+      conditions.push(filterSpecificConditions);
+    }
 
     // First, get all events
     const rawEvents = await db
@@ -56,7 +89,7 @@ async function getRecentEventsWithDeviceNames(limit = 10, offset = 0, filters = 
       })
       .from(eventsTable)
       .leftJoin(devicesTable, eq(eventsTable.deviceId, devicesTable.deviceId))
-      .where(finalCondition)
+      .where(and(...conditions)) // Apply combined conditions
       .orderBy(desc(eventsTable.occurredAt))
       .limit(limit)
       .offset(offset);
