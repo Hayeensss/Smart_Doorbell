@@ -17,17 +17,56 @@ This project is a smart doorbell application designed to monitor and control you
 
 ## Get Started
 
-1.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-2.  **Set up environment variables:**
-    See the "Environment Setup" section below.
-3.  **Run the development server:**
-    ```bash
-    npm run dev
-    ```
-    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Prerequisites
+
+Before you begin, ensure you have the following software installed on your system:
+
+#### Required Software
+
+1. **Node.js** (version 18.17 or higher)
+
+   - Download from [nodejs.org](https://nodejs.org/)
+   - Verify installation: `node --version` and `npm --version`
+
+2. **Git**
+
+   - Download from [git-scm.com](https://git-scm.com/)
+   - Verify installation: `git --version`
+
+3. **PostgreSQL Database**
+
+   - Create a free account at [supabase.com](https://supabase.com/)
+   - Create a new project and get the connection string
+
+4. **Clerk Authentication**
+
+   - Create a free account at [clerk.com](https://clerk.com/)
+   - Create a new application
+   - Note your publishable key and secret key from the API Keys section
+
+### Installation Steps
+
+1. **Clone the repository:**
+
+   ```bash
+   git clone <repository-url>
+   cd Smart_Doorbell
+   ```
+
+2. **Install dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables:**
+   See the "Environment Setup" section below.
+
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## Environment Setup
 
